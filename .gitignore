@@ -1,0 +1,8 @@
+# AI Producer video-editing working files (private footage, downloaded media)
+aip-*/
+
+# Third-party AI Producer editing skills installed locally via `npx skills add`
+.agents/
+.claude/skills/
+agent/
+skills-lock.json
