@@ -8,6 +8,11 @@ Short, dated entries written by the critical-thinker agent. Patterns, not privat
 - Precise, discipline-specific vocabulary (systematic-review rigour).
 - Clear separation of AI scaffolding from human-verified evidence.
 
+## User's definition of a successful challenge (2026-11-07)
+- Dashboards: alternative ways to build measures / totals.
+- Brainstorming: a fatal flaw, or wider options.
+- Not yet defined: research questions, writing, decisions. Ask when these first come up.
+
 ## Recurring patterns
 <!-- e.g. 2026-11-07 — tends to frame goals without success criteria -->
 

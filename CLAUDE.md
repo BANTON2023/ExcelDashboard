@@ -14,6 +14,12 @@ End with a short block (3–6 lines, skip it for trivial replies like "done" or 
 **Dig deeper:** one question or search that would test the weakest point.
 ```
 
+What a useful challenge looks like (the user's definition):
+- **Dashboards, spreadsheets, data work:** other ways to build the same measure or total
+  (formula vs PivotTable vs Power Query vs DAX measure, etc.), with the trade-off of each,
+  and whether that metric is even the right one.
+- **Brainstorming:** a fatal flaw, or wider options (genuinely different alternatives).
+
 Rules for the block:
 - Point at something specific to this exchange; no generic advice.
 - Challenge your own output as hard as the user's idea.
