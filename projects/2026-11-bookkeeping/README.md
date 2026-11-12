@@ -23,6 +23,25 @@ python3 -m unittest discover -s tests       # 20 tests
 Books are CSV files in `./books/` (open them in Excel). `books/` is git-ignored: real
 financial records stay on your machine.
 
+## Phone version (buttons instead of commands)
+
+`web/shop-books.html` is published as a private claude.ai page with **Sale**, **Purchase** and
+**Expense** buttons, the priced shelf, debts (Owed), records, profit for the month, and a
+"Needs attention" list. Records are kept in the page's own database, so they stay the same on
+any device you open it on. Share it as **Contributor** with anyone who should record sales;
+Viewers can't see the books at all.
+
+**Receipts (optional).** After each sale the receipt appears; skip it or:
+- **Save PDF to print**: an 80 mm slip that fits POS/thermal printers and prints on A4. The
+  page itself can't open the print dialog, so open the saved PDF and print from there.
+- **Save image**: a PNG to send to the customer on WhatsApp.
+- **Copy as text**: paste into any chat.
+Any past sale, payment received, purchase or expense can produce a receipt or payment voucher from Records.
+Turn the automatic receipt off under Shop → "Show the receipt after every sale".
+
+Mistakes are cancelled, not deleted. The record stays crossed out with a reason, and a
+cancelled sale puts the goods back on the shelf.
+
 ## Stock already on the shelf
 
 Copy `stock_list_template.csv`, replace the sample rows with your own stock, and load it once:

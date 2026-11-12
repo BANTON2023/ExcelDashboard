@@ -1,0 +1,1021 @@
+<title>Shop Books</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: phone-first ledger app — action bar of three big buttons, summary, then lists; tabs pinned to the bottom. */
+:root {
+  --bg: #F2F4F0; --surface: #FFFFFF; --surface-2: #E7EBE5; --fg: #17201B; --muted: #5A665F; --line: #D3DAD3;
+  --accent: #0E6B4E; --accent-fg: #FFFFFF; --sale: #0E6B4E; --purchase: #1F5A8C; --expense: #A4521A;
+  --warn: #8A5D00; --warn-bg: #FFF2CF; --bad: #B3261E; --bad-bg: #FBE6E4; --good: #1E7A3C; --good-bg: #E2F3E6;
+  --slip: #FFFFFF; --slip-fg: #111111; --act-fg: #FFFFFF;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1411; --surface: #18201B; --surface-2: #222C26; --fg: #E6ECE7; --muted: #9BA8A0; --line: #2F3B34;
+  --accent: #42C192; --accent-fg: #06130D; --sale: #42C192; --purchase: #74AEE0; --expense: #E59C64;
+  --warn: #E9BC52; --warn-bg: #2E2710; --bad: #F28B80; --bad-bg: #3A1814; --good: #6FD08C; --good-bg: #13301C;
+  --slip: #F7F7F4; --slip-fg: #111111; --act-fg: #0B0F0D; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F1411; --surface: #18201B; --surface-2: #222C26; --fg: #E6ECE7; --muted: #9BA8A0; --line: #2F3B34;
+  --accent: #42C192; --accent-fg: #06130D; --sale: #42C192; --purchase: #74AEE0; --expense: #E59C64;
+  --warn: #E9BC52; --warn-bg: #2E2710; --bad: #F28B80; --bad-bg: #3A1814; --good: #6FD08C; --good-bg: #13301C;
+  --slip: #F7F7F4; --slip-fg: #111111; --act-fg: #0B0F0D; color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 110px; display: grid; gap: 18px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.45rem; font-weight: 800; }
+h2 { font-size: 1.08rem; font-weight: 700; }
+h3 { font-size: 0.95rem; font-weight: 700; }
+p { margin: 0; }
+.num, .money { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 0.82rem; }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.banner { border-radius: var(--r); padding: 10px 12px; font-size: 0.88rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner.bad { background: var(--bad-bg); color: var(--bad); }
+
+/* the three actions */
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.act { border: 0; border-radius: 14px; padding: 16px 10px 14px; display: grid; gap: 4px; justify-items: start; text-align: left; color: var(--act-fg); min-height: 92px; }
+.act b { font-family: var(--f-display); font-size: 1.2rem; font-weight: 800; }
+.act span { font-size: 0.78rem; opacity: 0.92; line-height: 1.25; }
+.act.sale { background: var(--sale); } .act.purchase { background: var(--purchase); } .act.expense { background: var(--expense); }
+.act:active { transform: translateY(1px); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.tile { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; }
+.tile .money { font-size: 1.15rem; font-weight: 600; }
+@media (min-width: 620px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+
+.pl { display: grid; gap: 6px; }
+.pl .row { display: flex; justify-content: space-between; gap: 12px; }
+.pl .row.total { border-top: 1px solid var(--line); padding-top: 6px; font-weight: 600; }
+.pl .row.big { font-family: var(--f-display); font-size: 1.1rem; font-weight: 800; }
+.pl .money { text-align: right; }
+
+.list { display: grid; }
+.li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.li:last-child { border-bottom: 0; }
+.li .main { min-width: 0; display: grid; gap: 2px; }
+.li .main b { font-weight: 600; overflow-wrap: anywhere; }
+.li .end { text-align: right; display: grid; gap: 2px; justify-items: end; flex-shrink: 0; }
+button.li { background: none; border: 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; }
+
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; border: 1px solid transparent; }
+.chip.sale { color: var(--sale); border-color: var(--sale); }
+.chip.purchase { color: var(--purchase); border-color: var(--purchase); }
+.chip.expense { color: var(--expense); border-color: var(--expense); }
+.chip.neutral { color: var(--muted); border-color: var(--line); }
+.chip.low { background: var(--warn-bg); color: var(--warn); }
+.chip.bad { background: var(--bad-bg); color: var(--bad); }
+.chip.good { background: var(--good-bg); color: var(--good); }
+.voided { text-decoration: line-through; opacity: 0.55; }
+
+.attn { display: grid; gap: 8px; }
+.attn .a { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 8px; font-size: 0.9rem; }
+.attn .a.due { background: var(--bad-bg); color: var(--bad); }
+.attn .a.check { background: var(--warn-bg); color: var(--warn); }
+.attn .a.ok { background: var(--good-bg); color: var(--good); }
+.attn .a strong { font-weight: 700; white-space: nowrap; }
+
+/* bottom tabs */
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
+nav.tabs .in { max-width: 760px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+nav.tabs button { background: none; border: 0; padding: 10px 2px 11px; font-size: 0.8rem; font-weight: 600; color: var(--muted); border-top: 3px solid transparent; }
+nav.tabs button[aria-current="page"] { color: var(--accent); border-top-color: var(--accent); }
+
+/* forms */
+.field { display: grid; gap: 5px; min-width: 0; }
+.field > label, .lbl { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+input[type=text], input[type=number], input[type=date], input[type=search], input[type=tel], select, textarea {
+  width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; min-height: 44px; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 420px) { .grid2.stack { grid-template-columns: 1fr; } }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button { background: var(--surface); border: 0; border-right: 1px solid var(--line); padding: 10px 6px; font-weight: 600; min-height: 44px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; }
+.chips button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 10px 14px; font-weight: 600; min-height: 44px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.danger { color: var(--bad); border-color: var(--bad); }
+.btn.small { min-height: 34px; padding: 6px 10px; font-size: 0.85rem; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.err { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 9px 11px; font-size: 0.9rem; }
+.note { background: var(--surface-2); border-radius: 8px; padding: 9px 11px; font-size: 0.85rem; color: var(--muted); }
+
+/* search results & basket */
+.results { display: grid; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.results button { display: flex; justify-content: space-between; gap: 10px; background: var(--surface); border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: left; }
+.results button:last-child { border-bottom: 0; }
+.results button:disabled { opacity: 0.5; }
+.basket { display: grid; gap: 8px; }
+.bline { border: 1px solid var(--line); border-radius: 9px; padding: 10px; display: grid; gap: 8px; }
+.bline .hd { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.bline .hd b { overflow-wrap: anywhere; }
+.total-bar { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 0 2px; border-top: 2px solid var(--fg); }
+.total-bar .money { font-size: 1.35rem; font-weight: 700; }
+
+/* sheet */
+.sheet { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; }
+.sheet .wrap { padding-block: calc(env(safe-area-inset-top, 0px) + 12px) 40px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: sticky; top: 0; background: var(--bg); padding-block: 8px; z-index: 2; }
+.sheet-head .close { background: none; border: 1px solid var(--line); border-radius: 8px; min-height: 40px; padding: 6px 12px; font-weight: 600; }
+.bar-sale { border-left: 5px solid var(--sale); padding-left: 10px; }
+.bar-purchase { border-left: 5px solid var(--purchase); padding-left: 10px; }
+.bar-expense { border-left: 5px solid var(--expense); padding-left: 10px; }
+
+/* receipt slip */
+.slip { background: var(--slip); color: var(--slip-fg); font-family: var(--f-mono); font-size: 13px; line-height: 1.5; width: 100%; max-width: 330px; margin: 0 auto; padding: 18px 16px 22px; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: 4px; }
+.slip .c { text-align: center; }
+.slip .lr { display: flex; justify-content: space-between; gap: 8px; }
+.slip .lr span:first-child { overflow-wrap: anywhere; }
+.slip .rule { border-top: 1px dashed #777; margin: 6px 0; }
+.slip .b { font-weight: 700; }
+.slip .lg { font-size: 15px; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 60; background: var(--fg); color: var(--bg); border-radius: 10px; padding: 10px 16px; font-weight: 600; font-size: 0.9rem; max-width: calc(100% - 32px); box-sizing: border-box; }
+.confirm { border: 1px solid var(--bad); background: var(--bad-bg); border-radius: 9px; padding: 12px; display: grid; gap: 10px; }
+.empty { text-align: center; padding: 22px 10px; display: grid; gap: 10px; justify-items: center; }
+.table-wrap { overflow-x: auto; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up 0.18s ease-out; } @keyframes up { from { transform: translateY(14px); opacity: 0.6; } } }
+</style>
+
+<div id="app"><div class="wrap"><header class="top"><h1>Shop Books</h1></header><div class="panel"><p class="muted">Opening your books…</p></div></div></div>
+<div id="sheet-root"></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   Shop Books — five-stage bookkeeping for a small shop (₦).
+   Rules from the source conversation: record immediately, keep
+   personal separate, always record credit sales, keep evidence,
+   reconcile cash/bank, sales ≠ profit (Sales − COGS − Opex).
+   ============================================================ */
+
+// ---------- helpers ----------
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const r2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const NGN = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+const money = (n) => NGN.format(r2(n || 0)).replace("NGN", "₦");
+const qtyFmt = (n) => (Math.round(n * 1000) / 1000).toLocaleString("en-NG");
+const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const nowIso = () => new Date().toISOString();
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 86400000);
+const niceDate = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const PAY_LABEL = { cash: "Cash", bank: "Transfer / POS", credit: "Credit (owes)" };
+const TYPE_LABEL = { sale: "Sale", purchase: "Purchase", expense: "Expense", opening_stock: "Opening stock", opening_balance: "Opening balance", debt_in: "Customer paid", debt_out: "Paid supplier", transfer: "Transfer" };
+const TYPE_CHIP = { sale: "sale", purchase: "purchase", expense: "expense" };
+const EXPENSE_CATS = ["Rent", "Transport", "Power / fuel", "Data / airtime", "Wages", "Repairs", "Market levy", "Bank charges", "Other"];
+const PERSONAL_HINTS = ["school fees", "family", "personal", "church", "wedding", "house rent", "home", "children", "hospital"];
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2600);
+}
+async function withRetry(fn) {
+  try { return await fn(); }
+  catch (e) { if (e && e.code === "unavailable") { await sleep(400 + Math.random() * 600); return await fn(); } throw e; }
+}
+function errText(e) {
+  if (!e) return "Something went wrong.";
+  if (e.code === "quota_exceeded") return "Your records store is full. Export your records, then ask Claude to archive old years.";
+  if (e.code === "invalid_argument") return "You can view these books but not change them. Ask the owner for Contributor access.";
+  return e.message || String(e);
+}
+
+// ---------- state ----------
+const state = { status: "loading", items: {}, txns: [], config: {}, tab: "home", demo: false, canWrite: true, slow: false, recFilter: "all" };
+let backend = null, unlisten = null, realBackend = null;
+
+// ---------- storage backends ----------
+function memoryBackend() {
+  let items = {}, txns = {}, config = {}, cb = null;
+  const id = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const emit = () => cb && cb({ items: { ...items }, txns: Object.values(txns), config: { ...config }, fresh: true });
+  return {
+    kind: "memory", newId: id,
+    listen(f) { cb = f; emit(); return () => { cb = null; }; },
+    async saveItem(k, d) { items[k] = { ...d, id: k }; emit(); },
+    async addTxn(d) { const k = id(); txns[k] = { ...d, id: k }; emit(); return k; },
+    async updateTxn(k, p) { txns[k] = { ...txns[k], ...p }; emit(); },
+    async saveConfig(d) { config = { ...d }; emit(); },
+  };
+}
+function dbBackend(db) {
+  const itemsCol = db.collection("items"), txCol = db.collection("txns"), cfg = db.doc("config/shop");
+  return {
+    kind: "db", newId: () => itemsCol.doc().id,
+    listen(f) {
+      let items = null, txns = null, config = null, fresh = { i: false, t: false, c: false };
+      const push = () => { if (items && txns && config) f({ items, txns, config, fresh: fresh.i && fresh.t && fresh.c }); };
+      const err = (e) => f({ error: e });
+      const u1 = itemsCol.onSnapshot((s) => { items = {}; s.docs.forEach((d) => (items[d.id] = { ...d.data(), id: d.id })); fresh.i = fresh.i || !s.metadata.fromCache; push(); }, err);
+      const u2 = txCol.onSnapshot((s) => { txns = s.docs.map((d) => ({ ...d.data(), id: d.id })); fresh.t = fresh.t || !s.metadata.fromCache; push(); }, err);
+      const u3 = cfg.onSnapshot((s) => { config = s.exists ? { ...s.data() } : {}; fresh.c = fresh.c || !s.metadata.fromCache; push(); }, err);
+      return () => { u1(); u2(); u3(); };
+    },
+    async saveItem(k, d) { await withRetry(() => itemsCol.doc(k).set(d)); },
+    async addTxn(d) { const ref = txCol.doc(); await withRetry(() => ref.set(d)); return ref.id; },
+    async updateTxn(k, p) { await withRetry(() => txCol.doc(k).update(p)); },
+    async saveConfig(d) { await withRetry(() => cfg.set(d)); },
+  };
+}
+
+function attach(b) {
+  if (unlisten) unlisten();
+  backend = b; state.status = "loading"; state.slow = false; render();
+  const timer = setTimeout(() => { if (state.status === "loading") { state.slow = true; render(); } }, 10000);
+  unlisten = b.listen((snap) => {
+    if (snap.error) { clearTimeout(timer); state.status = "error"; state.error = snap.error; render(); return; }
+    state.items = snap.items; state.txns = snap.txns; state.config = snap.config;
+    if (snap.fresh) clearTimeout(timer);
+    state.status = "ready"; render(); if (openSheet.refresh) openSheet.refresh();
+  });
+}
+
+// ---------- the books (derived from the transaction log) ----------
+function sortTx(list) {
+  return list.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt || "") < (b.createdAt || "") ? -1 : 1));
+}
+function compute() {
+  const tx = sortTx(state.txns.filter((t) => !t.voided));
+  const stock = {}, acct = { cash: 0, bank: 0 }, cust = {}, sup = {};
+  const S = (k) => stock[k] || (stock[k] = { qty: 0, value: 0 });
+  const debt = (book, name, date, amt) => {
+    const d = book[name] || (book[name] = { bal: 0, lots: [] });
+    d.bal = r2(d.bal + amt);
+    if (amt > 0) d.lots.push({ date, amt });
+    else { let pay = -amt; while (pay > 0.004 && d.lots.length) { const l = d.lots[0]; if (l.amt <= pay + 0.004) { pay -= l.amt; d.lots.shift(); } else { l.amt -= pay; pay = 0; } } }
+  };
+  for (const t of tx) {
+    if (t.type === "opening_stock" || t.type === "purchase") {
+      for (const l of t.lines) { const s = S(l.itemId); s.qty += l.qty; s.value += l.qty * l.cost; }
+      if (t.type === "purchase") { if (t.paidVia === "credit") debt(sup, t.party, t.date, t.total); else acct[t.paidVia] -= t.total; }
+    } else if (t.type === "sale") {
+      for (const l of t.lines) { const s = S(l.itemId); const avg = s.qty > 0 ? s.value / s.qty : l.cost; s.qty -= l.qty; s.value -= l.qty * avg; if (Math.abs(s.qty) < 1e-9) { s.qty = 0; s.value = 0; } }
+      if (t.paidVia === "credit") debt(cust, t.party, t.date, t.total); else acct[t.paidVia] += t.total;
+    } else if (t.type === "expense") {
+      if (t.paidVia === "credit") debt(sup, t.party, t.date, t.amount); else acct[t.paidVia] -= t.amount;
+    } else if (t.type === "opening_balance") acct[t.account] += t.amount;
+    else if (t.type === "debt_in") { debt(cust, t.party, t.date, -t.amount); acct[t.account] += t.amount; }
+    else if (t.type === "debt_out") { debt(sup, t.party, t.date, -t.amount); acct[t.account] -= t.amount; }
+    else if (t.type === "transfer") { acct[t.from] -= t.amount; acct[t.to] += t.amount; }
+  }
+  acct.cash = r2(acct.cash); acct.bank = r2(acct.bank);
+  return { stock, acct, cust, sup };
+}
+const avgCost = (c, id) => { const s = c.stock[id]; return s && s.qty > 0 ? r2(s.value / s.qty) : 0; };
+
+function shelf(query = "") {
+  const c = compute(); const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return Object.values(state.items)
+    .filter((it) => words.every((w) => it.name.toLowerCase().includes(w)))
+    .map((it) => { const s = c.stock[it.id] || { qty: 0, value: 0 }; const cost = s.qty > 0 ? s.value / s.qty : 0;
+      return { ...it, qty: r2(s.qty), cost: r2(cost), value: r2(s.qty > 0 ? s.value : 0), margin: it.price ? r2(it.price - cost) : null,
+        low: it.reorder != null && it.reorder !== "" && s.qty <= Number(it.reorder) }; })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function report(from, to) {
+  const inP = (t) => !t.voided && t.date >= from && t.date <= to;
+  const r = { sales: 0, cogs: 0, opex: {}, opexTotal: 0, drawings: 0, credit: 0, received: 0 };
+  for (const t of state.txns) {
+    if (!inP(t)) continue;
+    if (t.type === "sale") { r.sales += t.total; r.cogs += t.lines.reduce((s, l) => s + l.qty * l.cost, 0); if (t.paidVia === "credit") r.credit += t.total; else r.received += t.total; }
+    else if (t.type === "expense") { if (t.business) { r.opex[t.category] = (r.opex[t.category] || 0) + t.amount; r.opexTotal += t.amount; } else r.drawings += t.amount; }
+    else if (t.type === "debt_in") r.received += t.amount;
+  }
+  r.gross = r.sales - r.cogs; r.profit = r.gross - r.opexTotal;
+  return r;
+}
+
+function attention() {
+  const out = [], c = compute(), t0 = today();
+  const active = state.txns.filter((t) => !t.voided);
+  const trading = active.filter((t) => ["sale", "purchase", "expense"].includes(t.type));
+  if (trading.length && !trading.some((t) => t.date === t0)) out.push(["check", "Today", "Nothing recorded yet today. Record each sale and payment as it happens."]);
+  for (const s of shelf()) {
+    if (s.qty < 0) out.push(["due", "Count stock", `${s.name} shows ${qtyFmt(s.qty)} on the shelf. Count it and correct the records.`]);
+    else if (s.low) out.push(["due", "Restock", `${s.name} is down to ${qtyFmt(s.qty)} (reorder at ${s.reorder}).`]);
+    if (s.qty > 0 && !s.price) out.push(["check", "Price", `${s.name} has no selling price.`]);
+    else if (s.price && s.margin < 0) out.push(["check", "Price", `${s.name} sells for ${money(s.price)}, below its cost ${money(s.cost)}.`]);
+  }
+  for (const [name, d] of Object.entries(c.cust)) if (d.bal > 0.004 && d.lots[0]) {
+    const age = daysBetween(d.lots[0].date, t0);
+    if (age > 30) out.push(["due", "Chase debt", `${name} owes ${money(d.bal)}, oldest unpaid ${age} days.`]);
+  }
+  for (const [name, d] of Object.entries(c.sup)) if (d.bal > 0.004 && d.lots[0]) {
+    const age = daysBetween(d.lots[0].date, t0);
+    if (age > 30) out.push(["due", "Pay supplier", `You owe ${name} ${money(d.bal)}, oldest unpaid ${age} days.`]);
+  }
+  const noEv = trading.filter((t) => !String(t.evidence || "").trim() && daysBetween(t.date, t0) <= 60);
+  if (noEv.length) out.push(["check", "Receipts", `${noEv.length} record${noEv.length > 1 ? "s have" : " has"} no receipt or transfer reference. Open Records to add them.`]);
+  for (const t of active) if (t.type === "expense" && t.business && PERSONAL_HINTS.some((h) => `${t.category} ${t.description}`.toLowerCase().includes(h)))
+    out.push(["check", "Personal?", `"${t.description}" is in business expenses. If it was personal, cancel it and record it as personal.`]);
+  for (const a of ["cash", "bank"]) if (c.acct[a] < -0.004) out.push(["due", "Reconcile", `${a === "cash" ? "Cash" : "Bank"} book is below zero (${money(c.acct[a])}). A payment in is missing.`]);
+  const lastCount = state.config.lastCashCount;
+  if (active.length && (!lastCount || daysBetween(lastCount, t0) >= 7)) out.push(["check", "Count cash", `Count the cash in hand and compare with the cash book (${money(c.acct.cash)}). Do it in Shop settings.`]);
+  return out;
+}
+
+// ---------- rendering: main tabs ----------
+function render() {
+  const app = $("#app");
+  if (state.status === "loading") {
+    app.innerHTML = `<div class="wrap"><header class="top"><h1>Shop Books</h1></header><div class="panel"><p class="muted">${state.slow ? "Your records can't be reached yet. Check your connection; this page keeps trying." : "Opening your books…"}</p></div></div>`;
+    return;
+  }
+  if (state.status === "error") {
+    app.innerHTML = `<div class="wrap"><header class="top"><h1>Shop Books</h1></header><div class="banner bad">${esc(errText(state.error))}</div></div>`;
+    return;
+  }
+  const shop = state.config.name || "Your shop";
+  const view = { home: viewHome, shelf: viewShelf, records: viewRecords, owed: viewOwed, shop: viewShop }[state.tab]();
+  app.innerHTML = `
+    <div class="wrap">
+      <header class="top"><div><div class="eyebrow">${esc(niceDate(today()))}</div><h1>${esc(shop)}</h1></div>
+        ${state.demo ? `<span class="chip low">Demo shop</span>` : ""}</header>
+      ${state.demo ? `<div class="banner warn"><span>${backend && realBackend ? "Demo shop: try anything, nothing is saved." : "This view can't reach a records store, so this is a demo. Nothing is saved."}</span>${realBackend ? `<button class="btn small" data-act="leave-demo">Back to my books</button>` : ""}</div>` : ""}
+      ${!state.canWrite ? `<div class="banner warn">You can view these books but not record. Ask the owner for Contributor access.</div>` : ""}
+      <div class="actions" role="group" aria-label="Record">
+        <button class="act sale" data-act="sale"><b>Sale</b><span>Sell from the shelf</span></button>
+        <button class="act purchase" data-act="purchase"><b>Purchase</b><span>Stock bought in</span></button>
+        <button class="act expense" data-act="expense"><b>Expense</b><span>Rent, fuel, wages, personal</span></button>
+      </div>
+      ${view}
+    </div>
+    <nav class="tabs" aria-label="Sections"><div class="in">
+      ${[["home", "Today"], ["shelf", "Shelf"], ["records", "Records"], ["owed", "Owed"], ["shop", "Shop"]].map(([k, l]) =>
+        `<button data-tab="${k}" ${state.tab === k ? 'aria-current="page"' : ""}>${l}</button>`).join("")}
+    </div></nav>`;
+}
+
+function viewHome() {
+  const c = compute(), t0 = today(), m0 = t0.slice(0, 8) + "01";
+  const todayR = report(t0, t0), month = report(m0, t0);
+  const owedToYou = Object.values(c.cust).reduce((s, d) => s + Math.max(0, d.bal), 0);
+  if (!Object.keys(state.items).length && !state.txns.length) {
+    return `<div class="panel empty">
+      <h2>Start your books</h2>
+      <p class="muted">1. Put your stock on the shelf with cost and selling prices.<br>2. Enter the cash in hand and bank balance today.<br>3. Then tap Sale, Purchase or Expense each time money or goods move.</p>
+      <div class="row-btns"><button class="btn primary" data-act="add-item">Add stock</button><button class="btn" data-act="import">Import stock list (CSV)</button><button class="btn" data-tab="shop">Opening cash &amp; bank</button></div>
+      ${!state.demo ? `<button class="btn small" data-act="demo">Try the demo shop first</button>` : ""}
+    </div>`;
+  }
+  const att = attention();
+  const opexRows = Object.entries(month.opex).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<div class="row"><span class="muted">less ${esc(k)}</span><span class="money">−${money(v)}</span></div>`).join("");
+  return `
+    <section class="tiles" aria-label="Today">
+      <div class="tile"><span class="eyebrow">Sales today</span><span class="money">${money(todayR.sales)}</span></div>
+      <div class="tile"><span class="eyebrow">Cash book</span><span class="money">${money(c.acct.cash)}</span></div>
+      <div class="tile"><span class="eyebrow">Bank book</span><span class="money">${money(c.acct.bank)}</span></div>
+      <div class="tile"><span class="eyebrow">Customers owe</span><span class="money">${money(owedToYou)}</span></div>
+    </section>
+    <section class="panel">
+      <h2>Needs attention</h2>
+      <div class="attn">${att.length ? att.map(([k, h, m]) => `<div class="a ${k}"><strong>${esc(h)}</strong><span>${esc(m)}</span></div>`).join("")
+        : `<div class="a ok"><strong>All clear</strong><span>Nothing due right now.</span></div>`}</div>
+    </section>
+    <section class="panel">
+      <div><div class="eyebrow">Profit, ${esc(new Date(t0).toLocaleDateString("en-NG", { month: "long", year: "numeric" }))} so far</div></div>
+      <div class="pl">
+        <div class="row"><span>Sales</span><span class="money">${money(month.sales)}</span></div>
+        <div class="row"><span class="muted">less cost of goods sold</span><span class="money">−${money(month.cogs)}</span></div>
+        <div class="row total"><span>Gross profit</span><span class="money">${money(month.gross)}</span></div>
+        ${opexRows}
+        <div class="row total big"><span>Profit</span><span class="money">${money(month.profit)}</span></div>
+      </div>
+      <p class="note">Not profit: money actually received ${money(month.received)} · sold on credit ${money(month.credit)} · personal drawings ${money(month.drawings)}.</p>
+    </section>`;
+}
+
+function viewShelf() {
+  const q = state.shelfQ || "";
+  const rows = shelf(q);
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  return `<section class="panel">
+    <div class="row-btns" style="justify-content:space-between;align-items:center"><h2>Shelf</h2>
+      <div class="row-btns"><button class="btn small" data-act="add-item">Add item</button><button class="btn small" data-act="import">Import CSV</button></div></div>
+    <input type="search" id="shelf-q" placeholder="Search stock" value="${esc(q)}" aria-label="Search stock">
+    <div class="list" id="shelf-list">${shelfRows(rows)}</div>
+    <div class="pl"><div class="row total"><span>Stock value at cost</span><span class="money">${money(total)}</span></div></div>
+  </section>`;
+}
+function shelfRows(rows) {
+  if (!rows.length) return `<p class="muted">No stock ${state.shelfQ ? "matches that search" : "yet. Add items or import your stock list"}.</p>`;
+  return rows.map((r) => `<button class="li" data-act="edit-item" data-id="${esc(r.id)}">
+      <span class="main"><b>${esc(r.name)}</b><span class="small muted">cost ${money(r.cost)} · sells ${r.price ? money(r.price) : "no price"}${r.margin != null ? ` · margin ${money(r.margin)}` : ""}</span></span>
+      <span class="end"><span class="num" style="font-size:1.05rem;font-weight:600">${qtyFmt(r.qty)}</span>${r.qty < 0 ? `<span class="chip bad">COUNT</span>` : r.low ? `<span class="chip low">LOW</span>` : `<span class="small muted">on shelf</span>`}</span>
+    </button>`).join("");
+}
+
+function txSummary(t) {
+  if (t.type === "sale" || t.type === "purchase" || t.type === "opening_stock")
+    return t.lines.map((l) => `${qtyFmt(l.qty)} × ${l.name}`).join(", ");
+  if (t.type === "expense") return `${t.business ? t.category : "Personal"}: ${t.description}`;
+  if (t.type === "debt_in") return `${t.party} paid`;
+  if (t.type === "debt_out") return `Paid ${t.party}`;
+  if (t.type === "opening_balance") return `Opening ${t.account}`;
+  if (t.type === "transfer") return `${t.from} → ${t.to}`;
+  return "";
+}
+const txAmount = (t) => t.total ?? t.amount ?? 0;
+
+function viewRecords() {
+  const f = state.recFilter;
+  const groups = { all: null, sale: ["sale"], purchase: ["purchase", "opening_stock"], expense: ["expense"], money: ["debt_in", "debt_out", "opening_balance", "transfer"] };
+  const list = sortTx(state.txns).reverse().filter((t) => !groups[f] || groups[f].includes(t.type)).slice(0, 300);
+  let last = "", html = "";
+  for (const t of list) {
+    if (t.date !== last) { html += `<div class="eyebrow" style="padding-top:10px">${esc(niceDate(t.date))}</div>`; last = t.date; }
+    html += `<button class="li ${t.voided ? "voided" : ""}" data-act="open-tx" data-id="${esc(t.id)}">
+      <span class="main"><span><span class="chip ${TYPE_CHIP[t.type] || "neutral"}">${esc(TYPE_LABEL[t.type])}</span>${!t.evidence && ["sale", "purchase", "expense"].includes(t.type) && !t.voided ? ` <span class="chip low">no receipt ref</span>` : ""}${t.voided ? ` <span class="chip bad">cancelled</span>` : ""}</span>
+        <b>${esc(txSummary(t))}</b>${t.party && t.type !== "debt_in" && t.type !== "debt_out" ? `<span class="small muted">${esc(t.party)}</span>` : ""}</span>
+      <span class="end"><span class="money">${money(txAmount(t))}</span><span class="small muted">${esc(t.paidVia ? PAY_LABEL[t.paidVia] : t.account || "")}</span></span>
+    </button>`;
+  }
+  return `<section class="panel">
+    <div class="row-btns" style="justify-content:space-between;align-items:center"><h2>Records</h2><button class="btn small" data-act="export">Export CSV</button></div>
+    <div class="chips" role="group" aria-label="Filter">${[["all", "All"], ["sale", "Sales"], ["purchase", "Purchases"], ["expense", "Expenses"], ["money", "Payments"]]
+      .map(([k, l]) => `<button data-filter="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
+    <div class="list">${html || `<p class="muted">No records yet.</p>`}</div>
+    ${list.length === 300 ? `<p class="small muted">Showing the latest 300. Export CSV for everything.</p>` : ""}
+  </section>`;
+}
+
+function viewOwed() {
+  const c = compute(), t0 = today();
+  const block = (book, who) => {
+    const rows = Object.entries(book).filter(([, d]) => d.bal > 0.004).sort((a, b) => b[1].bal - a[1].bal);
+    if (!rows.length) return `<p class="muted">Nobody${who === "cust" ? " owes you" : " is owed"} right now.</p>`;
+    return rows.map(([name, d]) => { const age = d.lots[0] ? daysBetween(d.lots[0].date, t0) : 0;
+      return `<div class="li"><span class="main"><b>${esc(name)}</b><span class="small muted">oldest unpaid ${age} day${age === 1 ? "" : "s"} ${age > 30 ? `<span class="chip bad">overdue</span>` : ""}</span></span>
+        <span class="end"><span class="money">${money(d.bal)}</span><button class="btn small" data-act="${who === "cust" ? "debt-in" : "debt-out"}" data-name="${esc(name)}">${who === "cust" ? "Received" : "Paid"}</button></span></div>`; }).join("");
+  };
+  return `<section class="panel"><h2>Customers owe you</h2><div class="list">${block(c.cust, "cust")}</div></section>
+          <section class="panel"><h2>You owe suppliers</h2><div class="list">${block(c.sup, "sup")}</div></section>`;
+}
+
+function viewShop() {
+  const cf = state.config, c = compute();
+  const hasOpen = (a) => state.txns.some((t) => !t.voided && t.type === "opening_balance" && t.account === a);
+  return `<section class="panel"><h2>Receipt details</h2>
+      <div class="field"><label for="cf-name">Shop name</label><input type="text" id="cf-name" value="${esc(cf.name || "")}" placeholder="e.g. Blessing Provisions"></div>
+      <div class="field"><label for="cf-addr">Address</label><input type="text" id="cf-addr" value="${esc(cf.address || "")}" placeholder="Shop 14, Oyingbo Market, Lagos"></div>
+      <div class="grid2 stack"><div class="field"><label for="cf-phone">Phone</label><input type="tel" id="cf-phone" value="${esc(cf.phone || "")}"></div>
+      <div class="field"><label for="cf-footer">Receipt footer</label><input type="text" id="cf-footer" value="${esc(cf.footer || "Thank you for your patronage")}"></div></div>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cf-auto" ${cf.autoReceipt !== false ? "checked" : ""}> Show the receipt after every sale</label>
+      <div><button class="btn primary" data-act="save-config">Save details</button></div>
+    </section>
+    <section class="panel"><h2>Cash and bank</h2>
+      <div class="pl"><div class="row"><span>Cash book</span><span class="money">${money(c.acct.cash)}</span></div><div class="row"><span>Bank book</span><span class="money">${money(c.acct.bank)}</span></div></div>
+      <div class="row-btns">
+        ${!hasOpen("cash") ? `<button class="btn small" data-act="opening" data-acct="cash">Set opening cash</button>` : ""}
+        ${!hasOpen("bank") ? `<button class="btn small" data-act="opening" data-acct="bank">Set opening bank</button>` : ""}
+        <button class="btn small" data-act="transfer">Cash ↔ bank</button>
+        <button class="btn small" data-act="count-cash">Count cash</button>
+      </div>
+      ${cf.lastCashCount ? `<p class="small muted">Last cash count ${esc(niceDate(cf.lastCashCount))}: ${cf.lastCashDiff ? `off by ${money(cf.lastCashDiff)}` : "agreed"}.</p>` : ""}
+    </section>
+    <section class="panel"><h2>Records</h2>
+      <div class="row-btns"><button class="btn small" data-act="export">Export all records (CSV)</button>
+      ${state.demo ? "" : `<button class="btn small" data-act="demo">Open demo shop</button>`}</div>
+      <p class="small muted">The CSV opens in Excel and can be loaded into the command-line version of these books.</p>
+    </section>`;
+}
+
+// ---------- sheets ----------
+function openSheet(html, onMount, refresh) {
+  const root = $("#sheet-root");
+  root.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="wrap">${html}</div></div>`;
+  document.body.style.overflow = "hidden";
+  openSheet.refresh = refresh || null;
+  if (onMount) onMount(root.firstElementChild);
+  const f = root.querySelector("[autofocus]"); if (f) f.focus();
+}
+function closeSheet() { $("#sheet-root").innerHTML = ""; document.body.style.overflow = ""; openSheet.refresh = null; }
+const sheetHead = (title, bar) => `<div class="sheet-head"><h2 class="${bar || ""}">${esc(title)}</h2><button class="close" data-act="close">Close</button></div>`;
+const payPicker = (id, opts, val) => `<div class="seg" id="${id}" role="group">${opts.map((o) => `<button type="button" data-v="${o}" aria-pressed="${o === val}">${esc(PAY_LABEL[o] || o)}</button>`).join("")}</div>`;
+function wireSeg(el, onChange) {
+  el.addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return;
+    el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); onChange(b.dataset.v); });
+}
+const segVal = (el) => el.querySelector('[aria-pressed="true"]')?.dataset.v;
+function needWrite() { if (!state.canWrite) { toast("View only: ask the owner for Contributor access."); return false; } return true; }
+function showErr(sheet, msg) { const e = sheet.querySelector(".err"); e.textContent = msg; e.hidden = !msg; if (msg) e.scrollIntoView({ block: "nearest" }); }
+
+// --- Sale & Purchase share one basket builder ---
+function basketSheet(mode) {
+  if (!needWrite()) return;
+  const isSale = mode === "sale";
+  const b = { lines: [], pay: "cash", q: "" };
+  openSheet(`${sheetHead(isSale ? "New sale" : "New purchase", isSale ? "bar-sale" : "bar-purchase")}
+    <div class="field"><label for="bk-date">Date</label><input type="date" id="bk-date" value="${today()}" max="${today()}"></div>
+    <div class="field"><label for="bk-q">${isSale ? "Find item on the shelf" : "Item bought (search, or type a new name)"}</label>
+      <input type="search" id="bk-q" placeholder="${isSale ? "e.g. rice, indomie, milk" : "e.g. rice 50kg"}" autocomplete="off" autofocus></div>
+    <div class="results" id="bk-res" hidden></div>
+    <div class="basket" id="bk-lines"></div>
+    <div class="total-bar"><span class="eyebrow">Total</span><span class="money" id="bk-total">${money(0)}</span></div>
+    <div class="field"><span class="lbl">${isSale ? "Customer paid by" : "You paid by"}</span>${payPicker("bk-pay", ["cash", "bank", "credit"], "cash")}</div>
+    <div class="field"><label for="bk-party">${isSale ? "Customer name" : "Supplier name"} <span id="bk-party-req" class="small"></span></label><input type="text" id="bk-party" placeholder="${isSale ? "Walk-in customer" : "e.g. Ade Wholesale"}"></div>
+    <div class="field"><label for="bk-ev">${isSale ? "Receipt / transfer ref" : "Invoice / transfer ref"}</label><input type="text" id="bk-ev" placeholder="${isSale ? "POS slip or transfer ref (optional for cash)" : "Supplier invoice no."}"></div>
+    <p class="err" hidden></p>
+    <button class="btn primary" id="bk-save">${isSale ? "Save sale" : "Save purchase"}</button>`, (sh) => {
+    const q = $("#bk-q", sh), res = $("#bk-res", sh);
+    const held = (id) => b.lines.filter((l) => l.itemId === id).reduce((s, l) => s + l.qty, 0);
+    const drawRes = () => {
+      const term = q.value.trim(); if (!term) { res.hidden = true; return; }
+      const hits = shelf(term).slice(0, 8);
+      let html = hits.map((h) => { const left = h.qty - held(h.id);
+        return `<button data-pick="${esc(h.id)}" ${isSale && left <= 0 ? "disabled" : ""}><span><b>${esc(h.name)}</b><br><span class="small muted">${isSale ? `${qtyFmt(left)} on shelf` : `cost ${money(h.cost)}`}</span></span><span class="money">${h.price ? money(h.price) : "no price"}</span></button>`; }).join("");
+      if (!isSale && !hits.some((h) => h.name.toLowerCase() === term.toLowerCase())) html += `<button data-new="1"><span><b>Add new item “${esc(term)}”</b></span><span class="small muted">new</span></button>`;
+      if (!html) html = `<button disabled><span>Not on the shelf. Add it in Shelf or record a purchase.</span></button>`;
+      res.innerHTML = html; res.hidden = false;
+    };
+    const drawLines = () => {
+      $("#bk-lines", sh).innerHTML = b.lines.map((l, i) => {
+        const it = state.items[l.itemId] || { name: l.newName }; const listed = it.price;
+        const sub = r2(l.qty * (isSale ? l.price : l.cost));
+        return `<div class="bline" data-i="${i}"><div class="hd"><b>${esc(it.name)}</b><button class="btn small" data-rm="${i}" aria-label="Remove">Remove</button></div>
+          <div class="grid${isSale ? "2" : "3"}">
+            <div class="field"><label>Qty${isSale ? ` (shelf ${qtyFmt((compute().stock[l.itemId]?.qty || 0) - held(l.itemId) + l.qty)})` : ""}</label><input type="number" inputmode="decimal" min="0" step="any" data-f="qty" value="${l.qty}"></div>
+            ${isSale ? `<div class="field"><label>Price each (₦)</label><input type="number" inputmode="decimal" min="0" step="any" data-f="price" value="${l.price}"></div>`
+              : `<div class="field"><label>Cost each (₦)</label><input type="number" inputmode="decimal" min="0" step="any" data-f="cost" value="${l.cost || ""}"></div>
+                 <div class="field"><label>Sell at (₦)</label><input type="number" inputmode="decimal" min="0" step="any" data-f="sell" value="${l.sell || ""}"></div>`}
+          </div>
+          <div class="small muted" data-sub>${money(sub)}${isSale && listed && l.price !== listed ? ` · listed ${money(listed)} (${l.price < listed ? "−" : "+"}${money(Math.abs(listed - l.price))} each)` : ""}</div></div>`; }).join("");
+      $("#bk-total", sh).textContent = money(b.lines.reduce((s, l) => s + l.qty * (isSale ? l.price : l.cost), 0));
+    };
+    q.addEventListener("input", drawRes);
+    res.addEventListener("click", (e) => {
+      const p = e.target.closest("button"); if (!p || p.disabled) return;
+      if (p.dataset.pick) { const it = state.items[p.dataset.pick]; const c = compute();
+        b.lines.push(isSale ? { itemId: it.id, qty: 1, price: it.price || 0 } : { itemId: it.id, qty: 1, cost: avgCost(c, it.id) || 0, sell: it.price || "" }); }
+      else if (p.dataset.new) b.lines.push({ itemId: null, newName: q.value.trim(), qty: 1, cost: 0, sell: "" });
+      q.value = ""; res.hidden = true; drawLines(); q.focus();
+    });
+    $("#bk-lines", sh).addEventListener("input", (e) => {
+      const inp = e.target.closest("input[data-f]"); if (!inp) return; const i = +inp.closest(".bline").dataset.i;
+      const v = inp.value === "" ? "" : Number(inp.value); b.lines[i][inp.dataset.f] = inp.dataset.f === "sell" ? v : (v === "" ? 0 : v);
+      const l = b.lines[i]; const sub = r2(l.qty * (isSale ? l.price : l.cost));
+      inp.closest(".bline").querySelector("[data-sub]").textContent = money(sub);
+      $("#bk-total", sh).textContent = money(b.lines.reduce((s, x) => s + x.qty * (isSale ? x.price : x.cost), 0));
+    });
+    $("#bk-lines", sh).addEventListener("click", (e) => { const r = e.target.closest("[data-rm]"); if (r) { b.lines.splice(+r.dataset.rm, 1); drawLines(); } });
+    const setReq = () => { $("#bk-party-req", sh).textContent = b.pay === "credit" ? "(required for credit)" : ""; };
+    wireSeg($("#bk-pay", sh), (v) => { b.pay = v; setReq(); });
+    $("#bk-save", sh).addEventListener("click", async (ev) => {
+      const btn = ev.currentTarget; showErr(sh, "");
+      const date = $("#bk-date", sh).value, party = $("#bk-party", sh).value.trim(), evidence = $("#bk-ev", sh).value.trim();
+      if (!date || date > today()) return showErr(sh, "Choose a date that is today or earlier.");
+      if (!b.lines.length) return showErr(sh, isSale ? "Add at least one item from the shelf." : "Add at least one item.");
+      if (b.pay === "credit" && !party) return showErr(sh, isSale ? "A credit sale needs the customer's name, so the debt can be collected." : "A credit purchase needs the supplier's name.");
+      const c = compute();
+      for (const l of b.lines) {
+        if (!(l.qty > 0)) return showErr(sh, "Every quantity must be more than zero.");
+        if (isSale) {
+          if (!(l.price >= 0)) return showErr(sh, "Enter a price for every item.");
+          const it = state.items[l.itemId]; const have = c.stock[l.itemId]?.qty || 0; const want = b.lines.filter((x) => x.itemId === l.itemId).reduce((s, x) => s + x.qty, 0);
+          if (want > have + 1e-9) return showErr(sh, `The shelf shows ${qtyFmt(have)} × ${it.name}; you are selling ${qtyFmt(want)}. Record the purchase first, or count the stock.`);
+        } else if (!(l.cost > 0)) return showErr(sh, "Enter the cost of every item bought.");
+      }
+      const total = r2(b.lines.reduce((s, l) => s + l.qty * (isSale ? l.price : l.cost), 0));
+      if (!isSale && b.pay !== "credit" && c.acct[b.pay] - total < -0.004)
+        return showErr(sh, `Your ${b.pay === "cash" ? "cash" : "bank"} book shows ${money(c.acct[b.pay])}, less than ${money(total)}. Record the money that came in first, or set your opening balance under Shop.`);
+      btn.disabled = true;
+      try {
+        if (!isSale) for (const l of b.lines) if (!l.itemId) {
+          const existing = Object.values(state.items).find((x) => x.name.toLowerCase() === l.newName.toLowerCase());
+          if (existing) l.itemId = existing.id;
+          else { l.itemId = backend.newId(); await backend.saveItem(l.itemId, { name: l.newName, price: l.sell ? r2(l.sell) : null, reorder: null, createdAt: nowIso() }); state.items[l.itemId] = { id: l.itemId, name: l.newName, price: l.sell || null }; }
+        }
+        const lines = b.lines.map((l) => { const it = state.items[l.itemId];
+          return isSale ? { itemId: l.itemId, name: it.name, qty: l.qty, price: r2(l.price), cost: avgCost(c, l.itemId) }
+                        : { itemId: l.itemId, name: it.name, qty: l.qty, cost: r2(l.cost) }; });
+        const rec = { type: mode, date, createdAt: nowIso(), lines, total, paidVia: b.pay, party, evidence };
+        if (isSale) rec.receiptNo = "R" + date.replace(/-/g, "").slice(2) + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+        const id = await backend.addTxn(rec);
+        if (!isSale) for (const l of b.lines) if (l.sell !== "" && l.sell != null) { const it = state.items[l.itemId];
+          if (it && Number(l.sell) !== it.price) await backend.saveItem(l.itemId, { name: it.name, price: r2(l.sell), reorder: it.reorder ?? null, createdAt: it.createdAt || nowIso() }); }
+        closeSheet();
+        if (isSale) {
+          const gp = r2(total - lines.reduce((s, l) => s + l.qty * l.cost, 0));
+          toast(`Sale saved: ${money(total)}. Gross profit ${money(gp)}.`);
+          if (state.config.autoReceipt !== false) receiptSheet({ ...rec, id });
+        } else toast(`Purchase saved. Shelf updated.`);
+      } catch (e) { btn.disabled = false; showErr(sh, errText(e)); }
+    });
+  });
+}
+
+function expenseSheet() {
+  if (!needWrite()) return;
+  const s = { business: true, cat: "", pay: "cash" };
+  openSheet(`${sheetHead("New expense", "bar-expense")}
+    <div class="field"><span class="lbl">Whose money is this for?</span>
+      <div class="seg" id="ex-kind"><button type="button" data-v="biz" aria-pressed="true">Business cost</button><button type="button" data-v="personal" aria-pressed="false">Personal / family</button></div>
+      <p class="note" id="ex-note" hidden>Personal spending goes to owner drawings. It reduces cash but is never a business expense, so it stays out of profit.</p></div>
+    <div class="field" id="ex-cat-f"><span class="lbl">Category</span><div class="chips" id="ex-cat">${EXPENSE_CATS.map((c) => `<button type="button" data-v="${esc(c)}" aria-pressed="false">${esc(c)}</button>`).join("")}</div></div>
+    <div class="field"><label for="ex-desc">What was it for?</label><input type="text" id="ex-desc" placeholder="e.g. Generator fuel, 20 litres" autofocus></div>
+    <div class="grid2 stack"><div class="field"><label for="ex-amt">Amount (₦)</label><input type="number" inputmode="decimal" min="0" step="any" id="ex-amt"></div>
+    <div class="field"><label for="ex-date">Date</label><input type="date" id="ex-date" value="${today()}" max="${today()}"></div></div>
+    <div class="field"><span class="lbl">Paid by</span><div id="ex-pay-w">${payPicker("ex-pay", ["cash", "bank", "credit"], "cash")}</div></div>
+    <div class="field" id="ex-sup-f" hidden><label for="ex-sup">Supplier you now owe</label><input type="text" id="ex-sup"></div>
+    <div class="field"><label for="ex-ev">Receipt / transfer ref</label><input type="text" id="ex-ev" placeholder="Keep the receipt; write its number here"></div>
+    <p class="err" hidden></p>
+    <button class="btn primary" id="ex-save">Save expense</button>`, (sh) => {
+    const pay = () => $("#ex-pay", sh);
+    const bindPay = () => wireSeg(pay(), (v) => { s.pay = v; $("#ex-sup-f", sh).hidden = v !== "credit"; });
+    bindPay();
+    wireSeg($("#ex-kind", sh), (v) => { s.business = v === "biz"; $("#ex-note", sh).hidden = s.business; $("#ex-cat-f", sh).hidden = !s.business;
+      $("#ex-pay-w", sh).innerHTML = payPicker("ex-pay", s.business ? ["cash", "bank", "credit"] : ["cash", "bank"], "cash"); s.pay = "cash"; $("#ex-sup-f", sh).hidden = true; bindPay(); });
+    $("#ex-cat", sh).addEventListener("click", (e) => { const b = e.target.closest("button[data-v]"); if (!b) return;
+      $("#ex-cat", sh).querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); s.cat = b.dataset.v; });
+    $("#ex-save", sh).addEventListener("click", async (ev) => {
+      showErr(sh, ""); const btn = ev.currentTarget;
+      const desc = $("#ex-desc", sh).value.trim(), amount = r2($("#ex-amt", sh).value), date = $("#ex-date", sh).value, sup = $("#ex-sup", sh).value.trim(), evidence = $("#ex-ev", sh).value.trim();
+      if (s.business && !s.cat) return showErr(sh, "Pick a category.");
+      if (!desc) return showErr(sh, "Say what the money was for.");
+      if (!(amount > 0)) return showErr(sh, "Enter the amount.");
+      if (!date || date > today()) return showErr(sh, "Choose a date that is today or earlier.");
+      if (s.pay === "credit" && !sup) return showErr(sh, "Name the supplier you now owe.");
+      const c = compute();
+      if (s.pay !== "credit" && c.acct[s.pay] - amount < -0.004) return showErr(sh, `Your ${s.pay === "cash" ? "cash" : "bank"} book shows ${money(c.acct[s.pay])}. Record the money that came in first, or set your opening balance under Shop.`);
+      btn.disabled = true;
+      try {
+        const rec = { type: "expense", date, createdAt: nowIso(), business: s.business, category: s.business ? s.cat : "Drawings", description: desc, amount, paidVia: s.pay, party: s.pay === "credit" ? sup : "", evidence };
+        const id = await backend.addTxn(rec);
+        closeSheet(); toast(s.business ? `Expense saved: ${money(amount)}.` : `Recorded as personal drawings: ${money(amount)}.`);
+      } catch (e) { btn.disabled = false; showErr(sh, errText(e)); }
+    });
+  });
+}
+
+function itemSheet(id) {
+  if (!needWrite()) return;
+  const it = id ? state.items[id] : null; const row = id ? shelf().find((r) => r.id === id) : null;
+  openSheet(`${sheetHead(it ? it.name : "Add item to the shelf")}
+    ${it ? `<p class="muted">On shelf <b class="num">${qtyFmt(row.qty)}</b> · average cost <span class="money">${money(row.cost)}</span>. To add stock, record a Purchase.</p>`
+      : `<p class="note">This is stock already in the shop (opening stock). It doesn't touch cash or create a supplier debt. New stock you buy later goes through Purchase.</p>`}
+    <div class="field"><label for="it-name">Item name</label><input type="text" id="it-name" value="${esc(it?.name || "")}" ${it ? "" : "autofocus"} placeholder="e.g. Rice 50kg"></div>
+    ${it ? "" : `<div class="grid2"><div class="field"><label for="it-qty">Quantity on shelf now</label><input type="number" inputmode="decimal" min="0" step="any" id="it-qty"></div>
+      <div class="field"><label for="it-cost">Cost price each (₦)</label><input type="number" inputmode="decimal" min="0" step="any" id="it-cost"></div></div>`}
+    <div class="grid2"><div class="field"><label for="it-price">Selling price each (₦)</label><input type="number" inputmode="decimal" min="0" step="any" id="it-price" value="${it?.price ?? ""}"></div>
+      <div class="field"><label for="it-reorder">Reorder when down to</label><input type="number" inputmode="decimal" min="0" step="any" id="it-reorder" value="${it?.reorder ?? ""}"></div></div>
+    <p class="err" hidden></p>
+    <button class="btn primary" id="it-save">${it ? "Save changes" : "Put on shelf"}</button>`, (sh) => {
+    $("#it-save", sh).addEventListener("click", async (ev) => {
+      showErr(sh, ""); const btn = ev.currentTarget;
+      const name = $("#it-name", sh).value.trim(), price = $("#it-price", sh).value, reorder = $("#it-reorder", sh).value;
+      if (!name) return showErr(sh, "Give the item a name.");
+      const dup = Object.values(state.items).find((x) => x.name.toLowerCase() === name.toLowerCase() && x.id !== id);
+      if (dup) return showErr(sh, `"${dup.name}" is already on the shelf. Edit that one instead.`);
+      if (price !== "" && !(Number(price) >= 0)) return showErr(sh, "Selling price must be a number.");
+      let qty = 0, cost = 0;
+      if (!it) { qty = Number($("#it-qty", sh).value || 0); cost = Number($("#it-cost", sh).value || 0);
+        if (qty < 0) return showErr(sh, "Quantity can't be negative."); if (qty > 0 && !(cost > 0)) return showErr(sh, "Enter the cost price, so profit can be worked out."); }
+      btn.disabled = true;
+      try {
+        const k = id || backend.newId();
+        await backend.saveItem(k, { name, price: price === "" ? null : r2(price), reorder: reorder === "" ? null : Number(reorder), createdAt: it?.createdAt || nowIso() });
+        if (!it && qty > 0) await backend.addTxn({ type: "opening_stock", date: today(), createdAt: nowIso(), lines: [{ itemId: k, name, qty, cost: r2(cost) }], total: r2(qty * cost), evidence: "opening stock" });
+        closeSheet(); toast(it ? "Item updated." : `${name} is on the shelf.`);
+      } catch (e) { btn.disabled = false; showErr(sh, errText(e)); }
+    });
+  });
+}
+
+function importSheet() {
+  if (!needWrite()) return;
+  openSheet(`${sheetHead("Import stock list")}
+    <p class="muted">A CSV with the columns <span class="num">item, qty, unit_cost, selling_price, reorder_level</span> (reorder optional). Save your Excel sheet as CSV, or paste the rows below.</p>
+    <div class="field"><label for="im-file">CSV file</label><input type="file" id="im-file" accept=".csv,text/csv,text/plain"></div>
+    <div class="field"><label for="im-text">Or paste</label><textarea id="im-text" rows="7" class="num" placeholder="item,qty,unit_cost,selling_price,reorder_level&#10;Rice 50kg,10,72000,85000,3&#10;Groundnut oil 25L,8,38000,45000,2"></textarea></div>
+    <p class="err" hidden></p>
+    <div id="im-preview"></div>
+    <button class="btn primary" id="im-save">Put on shelf</button>`, (sh) => {
+    $("#im-file", sh).addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $("#im-text", sh).value = r.result; }; r.readAsText(f); });
+    $("#im-save", sh).addEventListener("click", async (ev) => {
+      showErr(sh, ""); const btn = ev.currentTarget;
+      let rows; try { rows = parseStockCsv($("#im-text", sh).value); } catch (e) { return showErr(sh, e.message); }
+      btn.disabled = true;
+      try {
+        const lines = [];
+        for (const r of rows) {
+          let it = Object.values(state.items).find((x) => x.name.toLowerCase() === r.item.toLowerCase());
+          const k = it ? it.id : backend.newId();
+          await backend.saveItem(k, { name: it ? it.name : r.item, price: r.price, reorder: r.reorder ?? it?.reorder ?? null, createdAt: it?.createdAt || nowIso() });
+          if (r.qty > 0) lines.push({ itemId: k, name: it ? it.name : r.item, qty: r.qty, cost: r.cost });
+        }
+        if (lines.length) await backend.addTxn({ type: "opening_stock", date: today(), createdAt: nowIso(), lines, total: r2(lines.reduce((s, l) => s + l.qty * l.cost, 0)), evidence: "stock list import" });
+        closeSheet(); state.tab = "shelf"; render(); toast(`${rows.length} item${rows.length > 1 ? "s" : ""} put on the shelf.`);
+      } catch (e) { btn.disabled = false; showErr(sh, errText(e)); }
+    });
+  });
+}
+function parseStockCsv(text) {
+  const split = (line) => { const out = []; let cur = "", q = false; for (const ch of line) { if (ch === '"') q = !q; else if (ch === "," && !q) { out.push(cur); cur = ""; } else cur += ch; } out.push(cur); return out.map((s) => s.trim()); };
+  const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) throw new Error("Need a header row and at least one item.");
+  const head = split(lines[0]).map((h) => h.toLowerCase());
+  const ix = (n) => head.indexOf(n);
+  for (const n of ["item", "qty", "unit_cost", "selling_price"]) if (ix(n) < 0) throw new Error(`Missing column "${n}". Columns needed: item, qty, unit_cost, selling_price.`);
+  const num = (v) => Number(String(v).replace(/[₦,\s]/g, ""));
+  return lines.slice(1).map((l, i) => { const c = split(l); const r = { item: c[ix("item")], qty: num(c[ix("qty")]), cost: r2(num(c[ix("unit_cost")])), price: r2(num(c[ix("selling_price")])), reorder: ix("reorder_level") >= 0 && c[ix("reorder_level")] !== "" ? num(c[ix("reorder_level")]) : null };
+    if (!r.item) throw new Error(`Row ${i + 2}: no item name.`);
+    if (!(r.qty >= 0) || !(r.cost >= 0) || !(r.price >= 0)) throw new Error(`Row ${i + 2} (${r.item}): quantity, cost and price must be numbers.`);
+    return r; });
+}
+
+function moneySheet(kind, opts = {}) {
+  if (!needWrite()) return;
+  const c = compute();
+  const cfg = {
+    "debt-in": { title: `${opts.name} paid you`, bal: c.cust[opts.name]?.bal || 0, acctLabel: "Received into" },
+    "debt-out": { title: `Pay ${opts.name}`, bal: c.sup[opts.name]?.bal || 0, acctLabel: "Paid from" },
+    opening: { title: `Opening ${opts.acct === "cash" ? "cash in hand" : "bank balance"}` },
+    transfer: { title: "Move money between cash and bank" },
+    "count-cash": { title: "Count cash in hand" },
+  }[kind];
+  let acct = kind === "debt-in" ? "bank" : "cash", dir = "cash";
+  openSheet(`${sheetHead(cfg.title)}
+    ${kind === "debt-in" || kind === "debt-out" ? `<p class="muted">Balance ${money(cfg.bal)}</p>` : ""}
+    ${kind === "count-cash" ? `<p class="muted">Cash book says <b class="money">${money(c.acct.cash)}</b>. Count the notes in the drawer and enter what is there.</p>` : ""}
+    ${kind === "transfer" ? `<div class="field"><span class="lbl">Direction</span><div class="seg" id="mv-dir"><button type="button" data-v="cash" aria-pressed="true">Cash → bank (deposit)</button><button type="button" data-v="bank" aria-pressed="false">Bank → cash (withdraw)</button></div></div>` : ""}
+    <div class="grid2 stack"><div class="field"><label for="mv-amt">${kind === "count-cash" ? "Cash counted (₦)" : "Amount (₦)"}</label><input type="number" inputmode="decimal" min="0" step="any" id="mv-amt" value="${kind.startsWith("debt") ? r2(cfg.bal) : ""}" autofocus></div>
+    <div class="field"><label for="mv-date">Date</label><input type="date" id="mv-date" value="${today()}" max="${today()}"></div></div>
+    ${kind === "debt-in" || kind === "debt-out" ? `<div class="field"><span class="lbl">${cfg.acctLabel}</span>${payPicker("mv-acct", ["cash", "bank"], acct)}</div>
+      <div class="field"><label for="mv-ev">Transfer ref / receipt</label><input type="text" id="mv-ev"></div>` : ""}
+    <p class="err" hidden></p>
+    <button class="btn primary" id="mv-save">Save</button>`, (sh) => {
+    if ($("#mv-acct", sh)) wireSeg($("#mv-acct", sh), (v) => (acct = v));
+    if ($("#mv-dir", sh)) wireSeg($("#mv-dir", sh), (v) => (dir = v));
+    $("#mv-save", sh).addEventListener("click", async (ev) => {
+      showErr(sh, ""); const btn = ev.currentTarget;
+      const amount = r2($("#mv-amt", sh).value), date = $("#mv-date", sh).value;
+      if (!(amount >= 0) || $("#mv-amt", sh).value === "") return showErr(sh, "Enter the amount.");
+      if (!date || date > today()) return showErr(sh, "Choose a date that is today or earlier.");
+      const base = { date, createdAt: nowIso() };
+      let rec = null;
+      if (kind === "debt-in") { if (!(amount > 0) || amount > cfg.bal + 0.004) return showErr(sh, `${opts.name} owes ${money(cfg.bal)}.`); rec = { ...base, type: "debt_in", party: opts.name, amount, account: acct, evidence: $("#mv-ev", sh).value.trim() }; }
+      if (kind === "debt-out") { if (!(amount > 0) || amount > cfg.bal + 0.004) return showErr(sh, `You owe ${opts.name} ${money(cfg.bal)}.`);
+        if (c.acct[acct] - amount < -0.004) return showErr(sh, `Your ${acct} book shows ${money(c.acct[acct])}.`);
+        rec = { ...base, type: "debt_out", party: opts.name, amount, account: acct, evidence: $("#mv-ev", sh).value.trim() }; }
+      if (kind === "opening") rec = { ...base, type: "opening_balance", account: opts.acct, amount };
+      if (kind === "transfer") { const to = dir === "cash" ? "bank" : "cash"; if (!(amount > 0)) return showErr(sh, "Enter the amount.");
+        if (c.acct[dir] - amount < -0.004) return showErr(sh, `Your ${dir} book shows ${money(c.acct[dir])}.`); rec = { ...base, type: "transfer", from: dir, to, amount }; }
+      btn.disabled = true;
+      try {
+        if (kind === "count-cash") {
+          const diff = r2(amount - c.acct.cash);
+          await backend.saveConfig({ ...state.config, lastCashCount: date, lastCashDiff: diff });
+          closeSheet(); toast(diff === 0 ? "Cash agrees with the books." : `Cash is ${diff < 0 ? "short" : "over"} by ${money(Math.abs(diff))}. Look for an unrecorded sale or expense.`);
+          return;
+        }
+        await backend.addTxn(rec); closeSheet(); toast("Saved.");
+      } catch (e) { btn.disabled = false; showErr(sh, errText(e)); }
+    });
+  });
+}
+
+function txSheet(id) {
+  const t = state.txns.find((x) => x.id === id); if (!t) return;
+  const rows = [["Type", TYPE_LABEL[t.type]], ["Date", niceDate(t.date)], ["Recorded", new Date(t.createdAt).toLocaleString("en-NG")]];
+  if (t.party) rows.push([t.type === "sale" || t.type === "debt_in" ? "Customer" : "Supplier", t.party]);
+  if (t.paidVia) rows.push(["Paid by", PAY_LABEL[t.paidVia]]);
+  if (t.account) rows.push(["Account", t.account]);
+  if (t.receiptNo) rows.push(["Receipt no.", t.receiptNo]);
+  rows.push(["Evidence ref", t.evidence || "none"]);
+  if (t.voided) rows.push(["Cancelled", t.voidReason || ""]);
+  const lines = t.lines ? `<div class="list">${t.lines.map((l) => `<div class="li"><span class="main"><b>${esc(l.name)}</b><span class="small muted">${qtyFmt(l.qty)} × ${money(t.type === "sale" ? l.price : l.cost)}${t.type === "sale" ? ` · cost ${money(l.cost)}` : ""}</span></span><span class="money">${money(l.qty * (t.type === "sale" ? l.price : l.cost))}</span></div>`).join("")}</div>` : "";
+  const canReceipt = ["sale", "purchase", "expense", "debt_in", "debt_out"].includes(t.type) && !t.voided;
+  openSheet(`${sheetHead(TYPE_LABEL[t.type] + " " + money(txAmount(t)), t.type === "sale" ? "bar-sale" : t.type === "purchase" ? "bar-purchase" : t.type === "expense" ? "bar-expense" : "")}
+    ${t.type === "expense" ? `<p><b>${esc(t.business ? t.category : "Personal / drawings")}</b>: ${esc(t.description)}</p>` : ""}
+    ${lines}
+    <div class="pl">${rows.map(([k, v]) => `<div class="row"><span class="muted">${esc(k)}</span><span>${esc(v)}</span></div>`).join("")}</div>
+    ${!t.voided && state.canWrite ? `<div class="field"><label for="tx-ev">${t.evidence ? "Change" : "Add"} receipt / transfer ref</label><div class="row-btns"><input type="text" id="tx-ev" value="${esc(t.evidence || "")}" style="flex:1;min-width:0"><button class="btn" id="tx-ev-save">Save ref</button></div></div>` : ""}
+    <div class="row-btns">${canReceipt ? `<button class="btn primary" id="tx-rcpt">${t.type === "sale" ? "Receipt" : t.type === "debt_in" ? "Payment receipt" : "Payment voucher"}</button>` : ""}
+      ${!t.voided && state.canWrite ? `<button class="btn danger" id="tx-void">Cancel this record</button>` : ""}</div>
+    <div id="tx-confirm"></div>`, (sh) => {
+    $("#tx-rcpt", sh)?.addEventListener("click", () => receiptSheet(t));
+    $("#tx-ev-save", sh)?.addEventListener("click", async () => { try { await backend.updateTxn(t.id, { evidence: $("#tx-ev", sh).value.trim() }); toast("Reference saved."); } catch (e) { toast(errText(e)); } });
+    $("#tx-void", sh)?.addEventListener("click", () => {
+      $("#tx-confirm", sh).innerHTML = `<div class="confirm"><b>Cancel this ${esc(TYPE_LABEL[t.type].toLowerCase())}?</b>
+        <span class="small">It stays in Records, crossed out, and stops counting. ${t.type === "sale" ? "The goods go back on the shelf and the money comes off the books." : ""}</span>
+        <div class="field"><label for="tx-reason">Reason</label><input type="text" id="tx-reason" placeholder="e.g. entered twice"></div>
+        <div class="row-btns"><button class="btn danger" id="tx-void-yes">Yes, cancel it</button><button class="btn" id="tx-void-no">Keep it</button></div></div>`;
+      $("#tx-void-no", sh).onclick = () => ($("#tx-confirm", sh).innerHTML = "");
+      $("#tx-void-yes", sh).onclick = async () => { const reason = $("#tx-reason", sh).value.trim(); if (!reason) { $("#tx-reason", sh).focus(); return; }
+        try { await backend.updateTxn(t.id, { voided: true, voidReason: reason, voidedAt: nowIso() }); closeSheet(); toast("Record cancelled."); } catch (e) { toast(errText(e)); } };
+    });
+  });
+}
+
+// ---------- receipts ----------
+function receiptRows(t) {
+  const cf = state.config, R = [];
+  const dt = new Date(t.createdAt);
+  const localDay = new Date(dt - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const time = localDay === t.date ? dt.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" }) : "";
+  R.push({ k: "c", t: cf.name || "Your shop", b: 1, lg: 1 });
+  if (cf.address) R.push({ k: "c", t: cf.address });
+  if (cf.phone) R.push({ k: "c", t: "Tel: " + cf.phone });
+  R.push({ k: "rule" });
+  const title = t.type === "sale" ? "SALES RECEIPT" : t.type === "debt_in" ? "PAYMENT RECEIPT" : "PAYMENT VOUCHER";
+  R.push({ k: "c", t: title, b: 1 });
+  R.push({ k: "lr", l: "No.", r: t.receiptNo || t.id.slice(0, 8).toUpperCase() });
+  R.push({ k: "lr", l: "Date", r: `${niceDate(t.date)} ${time}` });
+  if (t.type === "sale") R.push({ k: "lr", l: "Customer", r: t.party || "Walk-in" });
+  if (["purchase", "debt_out"].includes(t.type) || (t.type === "expense" && t.party)) R.push({ k: "lr", l: "Supplier", r: t.party });
+  if (t.type === "debt_in") R.push({ k: "lr", l: "Received from", r: t.party });
+  R.push({ k: "rule" });
+  if (t.lines) {
+    for (const l of t.lines) { const p = t.type === "sale" ? l.price : l.cost;
+      R.push({ k: "l", t: l.name }); R.push({ k: "lr", l: `  ${qtyFmt(l.qty)} x ${money(p)}`, r: money(l.qty * p) }); }
+  } else if (t.type === "expense") R.push({ k: "lr", l: `${t.business ? t.category : "Personal"}: ${t.description}`, r: money(t.amount) });
+  else R.push({ k: "lr", l: t.type === "debt_in" ? "Payment towards balance" : "Payment on account", r: money(t.amount) });
+  R.push({ k: "rule" });
+  R.push({ k: "lr", l: "TOTAL", r: money(txAmount(t)), b: 1, lg: 1 });
+  if (t.paidVia) R.push({ k: "lr", l: "Paid by", r: t.paidVia === "credit" ? "CREDIT" : PAY_LABEL[t.paidVia] });
+  if (t.account) R.push({ k: "lr", l: t.type === "debt_in" ? "Into" : "From", r: t.account === "cash" ? "Cash" : "Bank" });
+  if (t.type === "sale" && t.paidVia === "credit") R.push({ k: "c", t: `Amount owed: ${money(t.total)}`, b: 1 });
+  if (t.type === "debt_in") { const bal = compute().cust[t.party]?.bal || 0; R.push({ k: "lr", l: "Balance now owed", r: money(Math.max(0, bal)) }); }
+  if (t.evidence) R.push({ k: "lr", l: "Ref", r: t.evidence });
+  R.push({ k: "rule" });
+  R.push({ k: "c", t: t.type === "sale" || t.type === "debt_in" ? cf.footer || "Thank you for your patronage" : "For the shop's own records" });
+  return R;
+}
+function receiptHtml(t) {
+  return `<div class="slip" id="slip">${receiptRows(t).map((r) => r.k === "rule" ? `<div class="rule"></div>`
+    : r.k === "lr" ? `<div class="lr ${r.b ? "b" : ""} ${r.lg ? "lg" : ""}"><span>${esc(r.l)}</span><span>${esc(r.r)}</span></div>`
+    : `<div class="${r.k === "c" ? "c" : ""} ${r.b ? "b" : ""} ${r.lg ? "lg" : ""}">${esc(r.t)}</div>`).join("")}</div>`;
+}
+function receiptText(t) {
+  const W = 32, pad = (l, r) => { l = String(l); r = String(r); const sp = W - l.length - r.length; return sp >= 1 ? l + " ".repeat(sp) + r : l + "\n" + " ".repeat(Math.max(0, W - r.length)) + r; };
+  return receiptRows(t).map((r) => r.k === "rule" ? "-".repeat(W) : r.k === "lr" ? pad(r.l, r.r)
+    : r.k === "c" ? r.t.padStart(Math.floor((W + r.t.length) / 2)) : r.t).join("\n");
+}
+async function receiptCanvas(t) {
+  try { await Promise.all([document.fonts.load('400 22px "IBM Plex Mono"'), document.fonts.load('700 22px "IBM Plex Mono"')]); } catch (_) {}
+  const W = 576, P = 28, rows = receiptRows(t);
+  const font = (r) => `${r.b ? 700 : 400} ${r.lg ? 28 : 22}px "IBM Plex Mono", ui-monospace, monospace`;
+  const meas = document.createElement("canvas").getContext("2d");
+  const wrap = (text, f, max) => { meas.font = f; const words = String(text).split(" "); const out = []; let cur = "";
+    for (const w of words) { const t2 = cur ? cur + " " + w : w; if (meas.measureText(t2).width > max && cur) { out.push(cur); cur = w; } else cur = t2; } out.push(cur); return out; };
+  const plan = rows.map((r) => {
+    const lh = r.lg ? 40 : 32;
+    if (r.k === "rule") return { r, h: 22 };
+    if (r.k === "lr") { meas.font = font(r); const rw = meas.measureText(r.r).width; const ls = wrap(r.l, font(r), W - P * 2 - rw - 16); return { r, ls, lh, h: ls.length * lh }; }
+    const ls = wrap(r.t, font(r), W - P * 2); return { r, ls, lh, h: ls.length * lh };
+  });
+  const c = document.createElement("canvas"); c.width = W; c.height = P * 2 + plan.reduce((s, p) => s + p.h, 0);
+  const x = c.getContext("2d"); x.fillStyle = "#FFFFFF"; x.fillRect(0, 0, W, c.height); x.fillStyle = "#000000"; x.textBaseline = "top";
+  let y = P;
+  for (const p of plan) {
+    const r = p.r;
+    if (r.k === "rule") { x.save(); x.strokeStyle = "#000000"; x.setLineDash([8, 6]); x.lineWidth = 2; x.beginPath(); x.moveTo(P, y + 10); x.lineTo(W - P, y + 10); x.stroke(); x.restore(); }
+    else { x.font = font(r);
+      p.ls.forEach((line, i) => { if (r.k === "c") { x.textAlign = "center"; x.fillText(line, W / 2, y + i * p.lh); } else { x.textAlign = "left"; x.fillText(line, P, y + i * p.lh); } });
+      if (r.k === "lr") { x.textAlign = "right"; x.fillText(r.r, W - P, y + (p.ls.length - 1) * p.lh); } }
+    y += p.h;
+  }
+  return c;
+}
+function receiptSheet(t) {
+  const name = (t.receiptNo || t.type + "-" + t.id.slice(0, 6)).replace(/[^A-Za-z0-9-]/g, "");
+  openSheet(`${sheetHead(t.type === "sale" ? "Receipt" : t.type === "debt_in" ? "Payment receipt" : "Payment voucher", t.type === "sale" ? "bar-sale" : "")}
+    ${receiptHtml(t)}
+    <div class="row-btns" style="justify-content:center">
+      <button class="btn primary" id="rc-pdf">Save PDF to print</button>
+      <button class="btn" id="rc-png">Save image (WhatsApp)</button>
+      <button class="btn" id="rc-copy">Copy as text</button>
+      <button class="btn" data-act="close">Skip</button>
+    </div>
+    <p class="note" id="rc-msg">Printing: open the saved PDF and print it. It is 80 mm wide, which fits POS/thermal printers and prints fine on A4. The image can be sent to the customer on WhatsApp.</p>
+    <textarea id="rc-text" class="num" rows="8" readonly hidden></textarea>`, async (sh) => {
+    const dl = await window.claude?.use?.("downloads").catch(() => null);
+    if (!dl) { $("#rc-pdf", sh).hidden = true; $("#rc-png", sh).hidden = true;
+      $("#rc-msg", sh).textContent = "Saving files isn't available in this view. Copy the text, or open these books in claude.ai to save the PDF."; }
+    if (!window.jspdf) $("#rc-pdf", sh).hidden = true;
+    const save = async (filename, blob) => {
+      try { await dl.save({ filename, data: blob }); toast("Saved."); }
+      catch (e) { if (e?.code === "declined") return; if (e?.code === "rate_limited") { toast("A save is already waiting for you to confirm."); return; } toast("Couldn't save the file here."); }
+    };
+    $("#rc-png", sh).addEventListener("click", async () => { const c = await receiptCanvas(t); c.toBlob((b) => save(`receipt-${name}.png`, b), "image/png"); });
+    $("#rc-pdf", sh).addEventListener("click", async () => {
+      const c = await receiptCanvas(t); const wmm = 80, hmm = (c.height * wmm) / c.width;
+      const doc = new window.jspdf.jsPDF({ unit: "mm", format: [wmm, Math.max(hmm, 60)], orientation: "portrait" });
+      doc.addImage(c.toDataURL("image/png"), "PNG", 0, 0, wmm, hmm);
+      save(`receipt-${name}.pdf`, doc.output("blob"));
+    });
+    $("#rc-copy", sh).addEventListener("click", () => {
+      const text = receiptText(t);
+      const fallback = () => { const ta = $("#rc-text", sh); ta.value = text; ta.hidden = false; ta.select(); toast("Select all and copy."); };
+      try { navigator.clipboard.writeText(text).then(() => toast("Receipt copied."), fallback); } catch (_) { fallback(); }
+    });
+  });
+}
+
+// ---------- export ----------
+async function exportCsv() {
+  const q = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const head = ["date", "type", "status", "item_or_description", "qty", "unit_price", "unit_cost", "amount", "paid_via", "account", "party", "category", "business", "evidence", "receipt_no", "recorded_at", "id"];
+  const out = [head.join(",")];
+  for (const t of sortTx(state.txns)) {
+    const base = { date: t.date, type: t.type, status: t.voided ? "cancelled: " + (t.voidReason || "") : "", paid_via: t.paidVia || "", account: t.account || (t.type === "transfer" ? `${t.from}->${t.to}` : ""), party: t.party || "", category: t.category || "", business: t.type === "expense" ? (t.business ? "yes" : "personal") : "", evidence: t.evidence || "", receipt_no: t.receiptNo || "", recorded_at: t.createdAt, id: t.id };
+    if (t.lines) for (const l of t.lines) out.push(head.map((h) => q({ ...base, item_or_description: l.name, qty: l.qty, unit_price: l.price ?? "", unit_cost: l.cost, amount: r2(l.qty * (t.type === "sale" ? l.price : l.cost)) }[h])).join(","));
+    else out.push(head.map((h) => q({ ...base, item_or_description: t.description || TYPE_LABEL[t.type], amount: t.amount }[h])).join(","));
+  }
+  const dl = await window.claude?.use?.("downloads").catch(() => null);
+  if (!dl) { toast("Saving files isn't available in this view."); return; }
+  try { await dl.save({ filename: `shop-books-${today()}.csv`, data: out.join("\n") }); toast("Saved."); }
+  catch (e) { if (e?.code !== "declined") toast("Couldn't save the file here."); }
+}
+
+// ---------- demo shop (memory only) ----------
+async function seedDemo(b) {
+  const d = (n) => { const x = new Date(); x.setDate(x.getDate() - n); return new Date(x - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const at = (n) => d(n) + "T10:00:00.000Z";
+  await b.saveConfig({ name: "Demo Provisions Store", address: "Shop 14, Oyingbo Market, Lagos", phone: "0800 000 0000", footer: "Thank you for your patronage", autoReceipt: true, lastCashCount: d(9), lastCashDiff: 0 });
+  const items = [["Rice 50kg", 10, 72000, 85000, 3], ["Groundnut oil 25L", 8, 38000, 45000, 2], ["Indomie carton (40)", 25, 9800, 11500, 5], ["Peak milk tin (carton 48)", 6, 21500, 24500, 2], ["Semovita 10kg", 12, 11200, 13000, 4], ["Sugar 1kg (bag of 10)", 15, 13500, 15500, 5]];
+  const ids = {}; const lines = [];
+  for (const [name, qty, cost, price, reorder] of items) { const k = b.newId(); ids[name] = k; await b.saveItem(k, { name, price, reorder, createdAt: at(20) }); lines.push({ itemId: k, name, qty, cost }); }
+  await b.addTxn({ type: "opening_stock", date: d(20), createdAt: at(20), lines, total: r2(lines.reduce((s, l) => s + l.qty * l.cost, 0)), evidence: "stock list import" });
+  await b.addTxn({ type: "opening_balance", date: d(20), createdAt: at(20), account: "cash", amount: 50000 });
+  await b.addTxn({ type: "opening_balance", date: d(20), createdAt: at(20), account: "bank", amount: 400000 });
+  const L = (n, q, p, c) => ({ itemId: ids[n], name: n, qty: q, price: p, cost: c });
+  await b.addTxn({ type: "sale", date: d(15), createdAt: at(15), lines: [L("Rice 50kg", 2, 85000, 72000)], total: 170000, paidVia: "cash", party: "", evidence: "RCPT-001", receiptNo: "R-DEMO-001" });
+  await b.addTxn({ type: "purchase", date: d(14), createdAt: at(14), lines: [{ itemId: ids["Rice 50kg"], name: "Rice 50kg", qty: 5, cost: 74000 }], total: 370000, paidVia: "credit", party: "Ade Wholesale", evidence: "INV-221" });
+  await b.addTxn({ type: "sale", date: d(12), createdAt: at(12), lines: [L("Rice 50kg", 3, 84000, 72769.23)], total: 252000, paidVia: "credit", party: "Mama Chidi Canteen", evidence: "INV-S-002", receiptNo: "R-DEMO-002" });
+  await b.addTxn({ type: "sale", date: d(10), createdAt: at(10), lines: [L("Groundnut oil 25L", 4, 45000, 38000), L("Indomie carton (40)", 21, 11500, 9800)], total: 421500, paidVia: "bank", party: "Kunle Stores", evidence: "TRF-1177", receiptNo: "R-DEMO-003" });
+  await b.addTxn({ type: "expense", date: d(9), createdAt: at(9), business: true, category: "Transport", description: "Delivery to Mama Chidi", amount: 6000, paidVia: "cash", party: "", evidence: "" });
+  await b.addTxn({ type: "expense", date: d(8), createdAt: at(8), business: true, category: "Rent", description: "Shop rent (month)", amount: 60000, paidVia: "bank", party: "", evidence: "TRF-1180" });
+  await b.addTxn({ type: "expense", date: d(7), createdAt: at(7), business: false, category: "Drawings", description: "Children school fees", amount: 45000, paidVia: "bank", party: "", evidence: "TRF-1185" });
+  await b.addTxn({ type: "debt_in", date: d(5), createdAt: at(5), party: "Mama Chidi Canteen", amount: 100000, account: "bank", evidence: "TRF-1201" });
+  await b.addTxn({ type: "sale", date: d(0), createdAt: nowIso(), lines: [L("Semovita 10kg", 2, 13000, 11200), L("Sugar 1kg (bag of 10)", 1, 15500, 13500)], total: 41500, paidVia: "cash", party: "", evidence: "", receiptNo: "R-DEMO-004" });
+}
+async function enterDemo() { const m = memoryBackend(); await seedDemo(m); state.demo = true; state.tab = "home"; attach(m); }
+function leaveDemo() { if (!realBackend) return; state.demo = false; state.tab = "home"; attach(realBackend); }
+
+// ---------- events ----------
+document.addEventListener("click", (e) => {
+  const tab = e.target.closest("[data-tab]"); if (tab) { closeSheet(); state.tab = tab.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  const f = e.target.closest("[data-filter]"); if (f) { state.recFilter = f.dataset.filter; render(); return; }
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  const act = a.dataset.act;
+  ({
+    close: closeSheet, sale: () => basketSheet("sale"), purchase: () => basketSheet("purchase"), expense: expenseSheet,
+    "add-item": () => itemSheet(null), "edit-item": () => itemSheet(a.dataset.id), import: importSheet,
+    "open-tx": () => txSheet(a.dataset.id), "debt-in": () => moneySheet("debt-in", { name: a.dataset.name }), "debt-out": () => moneySheet("debt-out", { name: a.dataset.name }),
+    opening: () => moneySheet("opening", { acct: a.dataset.acct }), transfer: () => moneySheet("transfer"), "count-cash": () => moneySheet("count-cash"),
+    export: exportCsv, demo: enterDemo, "leave-demo": leaveDemo,
+    "save-config": async () => { if (!needWrite()) return;
+      try { await backend.saveConfig({ ...state.config, name: $("#cf-name").value.trim(), address: $("#cf-addr").value.trim(), phone: $("#cf-phone").value.trim(), footer: $("#cf-footer").value.trim(), autoReceipt: $("#cf-auto").checked }); toast("Details saved."); }
+      catch (err) { toast(errText(err)); } },
+  })[act]?.();
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "shelf-q") { state.shelfQ = e.target.value; $("#shelf-list").innerHTML = shelfRows(shelf(state.shelfQ)); }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#sheet-root").innerHTML) closeSheet(); });
+
+// ---------- start ----------
+(async function start() {
+  render();
+  const db = window.claude ? await window.claude.use("db").catch(() => null) : null;
+  if (!db) { await enterDemo(); return; }
+  const user = await window.claude.use("user").catch(() => null);
+  if (user && typeof user.can === "function") { try { const w = await user.can("data.write"); if (w === false) state.canWrite = false; } catch (_) {} }
+  realBackend = dbBackend(db);
+  attach(realBackend);
+})();
+</script>
