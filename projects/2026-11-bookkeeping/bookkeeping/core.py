@@ -54,6 +54,11 @@ BOOK_TITLES = {
     "reconciliations": "Reconciliation log",
 }
 
+# The shelf price list is master data (one row per item, edited in place),
+# not a transaction book, so it is kept apart from BOOKS.
+PRICE_LIST = "price_list"
+PRICE_COLS = ["item", "selling_price", "reorder_level", "updated"]
+
 PAY_METHODS = ("cash", "bank", "credit")
 ACCOUNTS = ("cash", "bank")
 
@@ -99,6 +104,8 @@ class Ledger:
             if not path.exists():
                 with path.open("w", newline="", encoding="utf-8") as fh:
                     csv.writer(fh).writerow(cols)
+        if not self._path(PRICE_LIST).exists():
+            self._write_prices([])
 
     # ---------- storage ----------
     def _path(self, book: str) -> Path:
@@ -152,7 +159,10 @@ class Ledger:
     def stock_on_hand(self, item: str) -> tuple[Decimal, Decimal]:
         """Return (quantity, weighted-average unit cost). [STD] AVCO method."""
         qty, value = Decimal("0"), Decimal("0")
-        for r in self.rows("stock"):
+        # Date order (stable within a day), so a back-dated entry is costed
+        # where it belongs rather than where it was typed.
+        rows = sorted(self.rows("stock"), key=lambda r: r["date"])
+        for r in rows:
             if r["item"].lower() != item.lower():
                 continue
             q_in, q_out = Decimal(r["qty_in"] or 0), Decimal(r["qty_out"] or 0)
@@ -182,12 +192,124 @@ class Ledger:
         out = {k: v for k, v in out.items() if v != 0}
         return {party: out.get(party, Decimal("0"))} if party else out
 
+    # ---------- the shelf: stock already on hand + its price list ----------
+    def _write_prices(self, rows: list[dict]) -> None:
+        with self._path(PRICE_LIST).open("w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=PRICE_COLS)
+            w.writeheader()
+            for r in sorted(rows, key=lambda r: r["item"].lower()):
+                w.writerow({k: r.get(k, "") for k in PRICE_COLS})
+
+    def prices(self) -> dict[str, dict]:
+        with self._path(PRICE_LIST).open(newline="", encoding="utf-8") as fh:
+            return {r["item"].lower(): r for r in csv.DictReader(fh)}
+
+    def canonical(self, item: str) -> str:
+        """The item's name as first written on the shelf (case-insensitive match)."""
+        key = item.strip().lower()
+        for name in self.stock_items():
+            if name.lower() == key:
+                return name
+        p = self.prices().get(key)
+        return p["item"] if p else item.strip()
+
+    def set_price(self, item: str, selling_price, reorder_level=None) -> None:
+        item = self.canonical(item)
+        rows = self.prices()
+        old = rows.get(item.lower(), {})
+        rows[item.lower()] = {
+            "item": item, "selling_price": money(selling_price),
+            "reorder_level": reorder_level if reorder_level not in (None, "")
+            else old.get("reorder_level", ""),
+            "updated": str(self._now())}
+        self._write_prices(list(rows.values()))
+
+    def price_of(self, item: str) -> Decimal | None:
+        p = self.prices().get(item.strip().lower())
+        return money(p["selling_price"]) if p and p["selling_price"] else None
+
+    def stock_in(self, *, date, item, qty, unit_cost, selling_price=None,
+                 reorder_level=None, ref="opening stock") -> dict:
+        """Put stock already in the shop on the shelf (opening stock).
+
+        [STD] Opening stock is the owner's capital already in the business: it
+        moves no cash and creates no supplier debt. Stock bought from now on
+        goes through record_purchase so the payment is recorded too.
+        """
+        date = self._check_date(date)
+        qty, unit_cost = Decimal(str(qty)), money(unit_cost)
+        if qty <= 0 or unit_cost < 0:
+            raise BookkeepingError(f"{item}: quantity must be positive and cost not negative.")
+        item = self.canonical(item)
+        row = self._append("stock", {"date": date, "item": item, "qty_in": qty,
+                                     "unit_cost": unit_cost, "kind": "opening",
+                                     "ref": ref})
+        if selling_price not in (None, ""):
+            self.set_price(item, selling_price, reorder_level)
+        return row
+
+    def load_stock_list(self, path, date=None) -> int:
+        """Load a CSV with columns item, qty, unit_cost, selling_price[, reorder_level]."""
+        date = date or self._now()
+        with open(path, newline="", encoding="utf-8-sig") as fh:
+            rows = list(csv.DictReader(fh))
+        need = {"item", "qty", "unit_cost", "selling_price"}
+        if not rows or not need <= {c.strip().lower() for c in rows[0]}:
+            raise BookkeepingError(f"Stock list needs columns: {', '.join(sorted(need))}"
+                                   " (reorder_level optional).")
+        clean = [{k.strip().lower(): (v or "").strip() for k, v in r.items()} for r in rows]
+        for r in clean:  # validate every line before writing any
+            if not r["item"]:
+                raise BookkeepingError("A row in the stock list has no item name.")
+            money(r["unit_cost"])
+            money(r["selling_price"])
+            try:
+                if Decimal(r["qty"]) <= 0:
+                    raise InvalidOperation
+            except InvalidOperation:
+                raise BookkeepingError(f"{r['item']}: quantity {r['qty']!r} is not a positive number.")
+        for r in clean:
+            self.stock_in(date=date, item=r["item"], qty=r["qty"],
+                          unit_cost=r["unit_cost"], selling_price=r["selling_price"],
+                          reorder_level=r.get("reorder_level"))
+        return len(clean)
+
+    def find_items(self, query: str) -> list[str]:
+        """Search the shelf: every word of the query must appear in the item name."""
+        words = query.lower().split()
+        names = {n.lower(): n for n in self.stock_items()}
+        for k, p in self.prices().items():
+            names.setdefault(k, p["item"])
+        return sorted(n for k, n in names.items() if all(w in k for w in words))
+
+    def shelf(self, query: str = "") -> list[dict]:
+        out = []
+        for item in (self.find_items(query) if query else
+                     sorted(set(self.stock_items()) |
+                            {p["item"] for p in self.prices().values()}, key=str.lower)):
+            qty, avg = self.stock_on_hand(item)
+            p = self.prices().get(item.lower(), {})
+            sell = money(p["selling_price"]) if p.get("selling_price") else None
+            reorder = Decimal(p["reorder_level"]) if p.get("reorder_level") else None
+            out.append({"item": item, "qty": qty, "unit_cost": avg,
+                        "selling_price": sell, "stock_value": (qty * avg).quantize(TWO),
+                        "margin_per_unit": (sell - avg) if sell is not None else None,
+                        "reorder_level": reorder,
+                        "low": reorder is not None and qty <= reorder})
+        return out
+
     # ---------- stage 3: posting ----------
-    def record_sale(self, *, date, customer, item, qty, unit_price, paid_via,
-                    evidence="") -> dict:
+    def record_sale(self, *, date, customer, item, qty, paid_via,
+                    unit_price=None, evidence="") -> dict:
+        """Sell from the shelf. Without unit_price the listed selling price is used."""
         date = self._check_date(date)
         if paid_via not in PAY_METHODS:
             raise BookkeepingError(f"paid_via must be one of {PAY_METHODS}")
+        item = self.canonical(item)
+        if unit_price in (None, ""):
+            unit_price = self.price_of(item)
+            if unit_price is None:
+                raise BookkeepingError(f"No selling price listed for {item}; give one.")
         qty, unit_price = Decimal(str(qty)), money(unit_price)
         if qty <= 0 or unit_price < 0:
             raise BookkeepingError("Quantity must be positive and price not negative.")
@@ -232,9 +354,10 @@ class Ledger:
         return row
 
     def record_purchase(self, *, date, supplier, item, qty, unit_cost, paid_via,
-                        evidence="") -> dict:
+                        evidence="", selling_price=None) -> dict:
         """Buying stock for resale goes to the stock book, not expenses."""
         date = self._check_date(date)
+        item = self.canonical(item)
         qty, unit_cost = Decimal(str(qty)), money(unit_cost)
         if qty <= 0 or unit_cost < 0:
             raise BookkeepingError("Quantity must be positive and cost not negative.")
@@ -253,6 +376,8 @@ class Ledger:
             self._append("supplier_debts", {
                 "date": date, "supplier": supplier, "amount": total,
                 "kind": "credit purchase", "ref": row["id"], "evidence": evidence})
+        if selling_price not in (None, ""):
+            self.set_price(item, selling_price)
         return row
 
     def pay_supplier(self, *, date, supplier, amount, account, evidence="") -> dict:

@@ -117,5 +117,68 @@ class Stages(Base):
         self.assertTrue(any(t.stage == 5 for t in status(l).tasks))
 
 
+class Shelf(Base):
+    """Stock already on the shelf with listed prices; sales deduct from it."""
+
+    def load(self):
+        csv_path = Path(self.tmp.name) / "list.csv"
+        csv_path.write_text("item,qty,unit_cost,selling_price,reorder_level\n"
+                            "Indomie carton,10,9800,11500,3\n"
+                            "Peak milk,5,21500,24500,\n", encoding="utf-8")
+        return self.l.load_stock_list(csv_path, TODAY)
+
+    def test_opening_stock_moves_no_cash_and_no_debt(self):
+        self.assertEqual(self.load(), 2)
+        self.assertEqual(self.l.stock_on_hand("Indomie carton")[0], Decimal("10"))
+        self.assertEqual(self.l.balance("cash"), Decimal("10000.00"))
+        self.assertNotIn("Indomie carton", self.l.debt_balance("supplier_debts"))
+
+    def test_sale_uses_listed_price_and_deducts_shelf(self):
+        self.load()
+        row = self.l.record_sale(date=TODAY, customer="", item="indomie CARTON",
+                                 qty=4, paid_via="cash", evidence="r")
+        self.assertEqual(row["item"], "Indomie carton")
+        self.assertEqual(Decimal(row["total"]), Decimal("46000.00"))
+        self.assertEqual(Decimal(row["cost_of_goods"]), Decimal("39200.00"))
+        self.assertEqual(self.l.stock_on_hand("Indomie carton")[0], Decimal("6"))
+        self.assertEqual(self.l.balance("cash"), Decimal("56000.00"))
+
+    def test_negotiated_price_overrides_list(self):
+        self.load()
+        row = self.l.record_sale(date=TODAY, customer="", item="Peak milk", qty=1,
+                                 unit_price=24000, paid_via="cash")
+        self.assertEqual(Decimal(row["total"]), Decimal("24000.00"))
+
+    def test_search(self):
+        self.load()
+        self.assertEqual(self.l.find_items("milk"), ["Peak milk"])
+        self.assertEqual(self.l.find_items("carton indo"), ["Indomie carton"])
+        self.assertEqual(len(self.l.find_items("")), 3)  # + Rice from setUp
+
+    def test_low_stock_alert(self):
+        self.load()
+        self.l.record_sale(date=TODAY, customer="", item="Indomie carton", qty=7,
+                           paid_via="cash")
+        self.assertTrue(any("Indomie carton is down to 3" in t.message
+                            for t in status(self.l).tasks))
+
+    def test_bad_stock_list_writes_nothing(self):
+        bad = Path(self.tmp.name) / "bad.csv"
+        bad.write_text("item,qty,unit_cost,selling_price\nA,2,100,150\nB,-1,100,150\n")
+        with self.assertRaises(BookkeepingError):
+            self.l.load_stock_list(bad, TODAY)
+        self.assertEqual(self.l.find_items("A"), [])
+
+    def test_backdated_entries_costed_in_date_order(self):
+        l = Ledger(Path(self.tmp.name) / "c", today=TODAY)
+        l.stock_in(date="2026-11-01", item="Oil", qty=10, unit_cost=100, selling_price=150)
+        l.record_purchase(date="2026-11-10", supplier="X", item="Oil", qty=10,
+                          unit_cost=200, paid_via="credit")
+        # typed after the purchase, but it happened before it
+        l.record_sale(date="2026-11-05", customer="", item="Oil", qty=5, paid_via="cash")
+        qty, avg = l.stock_on_hand("Oil")
+        self.assertEqual((qty, avg), (Decimal("15"), Decimal("166.67")))
+
+
 if __name__ == "__main__":
     unittest.main()

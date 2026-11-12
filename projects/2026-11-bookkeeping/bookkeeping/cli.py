@@ -4,6 +4,9 @@
     python -m bookkeeping record          record a transaction (asks questions)
     python -m bookkeeping reconcile       count cash, bank, stock (asks questions)
     python -m bookkeeping report          profit report (this month by default)
+    python -m bookkeeping stock-in --file stock_list.csv   load what is on the shelf
+    python -m bookkeeping shelf [search]  stock, prices and value; search by name
+    python -m bookkeeping price ITEM AMOUNT  change a selling price
     python -m bookkeeping stages          the five stages and their rules
     python -m bookkeeping export          all books into one Excel workbook
     python -m bookkeeping sample          load sample naira entries to try it out
@@ -14,6 +17,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 from .core import Ledger, BookkeepingError, BOOK_TITLES, BOOKS, fmt, money
@@ -77,6 +81,101 @@ def cmd_status(ledger, args):
         print()
 
 
+# ---------- the shelf ----------
+def pick_item(ledger, allow_new=False):
+    """Search the shelf and pick one item by number."""
+    while True:
+        q = ask("Search item (part of the name; blank = done)", required=False)
+        if not q:
+            return None
+        hits = ledger.find_items(q)
+        if len(hits) == 1:
+            print(f"    -> {hits[0]}")
+            return hits[0]
+        if hits:
+            for i, name in enumerate(hits, 1):
+                qty, _ = ledger.stock_on_hand(name)
+                price = ledger.price_of(name)
+                print(f"    {i}. {name}  (shelf {qty}, {fmt(price) if price else 'no price'})")
+            n = ask("Number", required=False)
+            if n.isdigit() and 1 <= int(n) <= len(hits):
+                return hits[int(n) - 1]
+            continue
+        if allow_new and yes(f"    '{q}' is not on the shelf. Add it as a new item?", "n"):
+            return q.strip()
+        print("    not found on the shelf; try another word.")
+
+
+def sale_basket(ledger):
+    """Build a sale line by line; quantities are checked against the shelf."""
+    basket, held = [], {}
+    print("Add items to the sale. Leave the search blank when done.")
+    while True:
+        item = pick_item(ledger)
+        if item is None:
+            break
+        on_shelf = ledger.stock_on_hand(item)[0] - held.get(item, 0)
+        if on_shelf <= 0:
+            print(f"    {item}: none left on the shelf. Record a purchase first.")
+            continue
+        qty = Decimal(ask(f"Quantity (shelf has {on_shelf})", 1))
+        if qty <= 0 or qty > on_shelf:
+            print(f"    must be between 1 and {on_shelf}")
+            continue
+        listed = ledger.price_of(item)
+        price = money(ask("Unit price (₦)", listed))
+        if listed is not None and price != listed:
+            print(f"    note: {fmt(price)} differs from the listed {fmt(listed)} "
+                  f"({fmt(price - listed)} per unit).")
+        basket.append((item, qty, price))
+        held[item] = held.get(item, 0) + qty
+        print(f"    added {qty} x {item} @ {fmt(price)} = {fmt(qty * price)}")
+    if basket:
+        print(f"  Basket total {fmt(sum(q * p for _, q, p in basket))}")
+    return basket
+
+
+def cmd_shelf(ledger, args):
+    rows = ledger.shelf(" ".join(args.search))
+    if not rows:
+        print("Nothing on the shelf" + (f" matching '{' '.join(args.search)}'." if args.search
+              else ". Load your stock list: stock-in --file stock_list.csv"))
+        return
+    print(f"{'Item':28}{'Qty':>8}{'Cost':>14}{'Sell':>14}{'Margin':>12}{'Value':>16}")
+    for r in rows:
+        sell = fmt(r["selling_price"]) if r["selling_price"] is not None else "-"
+        margin = fmt(r["margin_per_unit"]) if r["margin_per_unit"] is not None else "-"
+        flag = "  LOW" if r["low"] else ""
+        print(f"{r['item'][:27]:28}{str(r['qty']):>8}{fmt(r['unit_cost']):>14}"
+              f"{sell:>14}{margin:>12}{fmt(r['stock_value']):>16}{flag}")
+    print(f"{'Stock value at cost':64}{fmt(sum(r['stock_value'] for r in rows)):>16}")
+
+
+def cmd_stock_in(ledger, args):
+    if args.file:
+        n = ledger.load_stock_list(args.file, args.date)
+        print(f"Loaded {n} items onto the shelf as opening stock.")
+        return cmd_shelf(ledger, argparse.Namespace(search=[]))
+    print("Opening stock: what is already on the shelf. Leave item blank to finish.")
+    date = ask("Date (YYYY-MM-DD)", str(ledger._now()))
+    while True:
+        item = ask("Item", required=False)
+        if not item:
+            break
+        ledger.stock_in(date=date, item=item, qty=ask("Quantity on shelf"),
+                        unit_cost=ask("Cost price per unit (₦)"),
+                        selling_price=ask("Selling price per unit (₦)"),
+                        reorder_level=ask("Reorder when down to", required=False))
+    cmd_shelf(ledger, argparse.Namespace(search=[]))
+
+
+def cmd_price(ledger, args):
+    item = ledger.canonical(args.item)
+    old = ledger.price_of(item)
+    ledger.set_price(item, args.amount, args.reorder)
+    print(f"{item}: {fmt(old) if old else 'no price'} -> {fmt(money(args.amount))}")
+
+
 RECORD_TYPES = {
     "sale": "Sale of goods (cash, bank transfer or on credit)",
     "purchase": "Buying stock to resell",
@@ -99,34 +198,48 @@ def cmd_record(ledger, args):
     print(f"\nStage 1 - Capture: {RECORD_TYPES[kind]}")
     date = ask("Date (YYYY-MM-DD)", today)
     if kind == "sale":
+        basket = sale_basket(ledger)
+        if not basket:
+            print("  Nothing sold; nothing recorded.")
+            return
         print("Stage 2 - Separate")
         paid = ask("Paid by", "cash", ("cash", "bank", "credit"))
-        cust = ask("Customer name", required=(paid == "credit"))
-        items = ledger.stock_items()
-        if items:
-            print(f"    in stock: {', '.join(items)}")
-        item = ask("Item")
-        qty = ask("Quantity", 1)
-        price = ask("Unit price (₦)")
+        cust = ask("Customer name" + (" (required for credit)" if paid == "credit" else ""),
+                   required=(paid == "credit"))
         ev = evidence_prompt()
         print("Stage 3 - Post")
-        row = ledger.record_sale(date=date, customer=cust, item=item, qty=qty,
-                                 unit_price=price, paid_via=paid, evidence=ev)
-        print(f"  Sales book {row['id']}: {fmt(money(row['total']))}; stock book reduced"
-              + ("; customer debt book raised (no money yet)." if paid == "credit"
-                 else f"; {paid} book increased."))
-        print(f"  Cost of these goods {fmt(money(row['cost_of_goods']))}, so this sale "
-              f"adds {fmt(money(row['total']) - money(row['cost_of_goods']))} gross "
-              "profit, not the full sale amount.")
+        total = cogs = 0
+        for item, qty, price in basket:
+            row = ledger.record_sale(date=date, customer=cust, item=item, qty=qty,
+                                     unit_price=price, paid_via=paid, evidence=ev)
+            total += money(row["total"])
+            cogs += money(row["cost_of_goods"])
+            left = ledger.stock_on_hand(item)[0]
+            print(f"  Sales book {row['id']}: {qty} x {item} = {fmt(money(row['total']))}"
+                  f"  | shelf now {left}")
+        print(f"  Total {fmt(total)}"
+              + (" -> customer debt book (no money yet)." if paid == "credit"
+                 else f" -> {paid} book."))
+        print(f"  Cost of goods {fmt(cogs)}, so gross profit on this sale is "
+              f"{fmt(total - cogs)}, not {fmt(total)}.")
+        for line in ledger.shelf():
+            if line["low"] and line["item"] in {b[0] for b in basket}:
+                print(f"  ! {line['item']} is down to {line['qty']} "
+                      f"(reorder level {line['reorder_level']}). Restock.")
     elif kind == "purchase":
         paid = ask("Paid by", "cash", ("cash", "bank", "credit"))
         sup = ask("Supplier name", required=(paid == "credit"))
-        item = ask("Item")
+        item = None
+        while not item:
+            item = pick_item(ledger, allow_new=True)
         qty = ask("Quantity")
         cost = ask("Unit cost (₦)")
+        listed = ledger.price_of(item)
+        sell = ask("Selling price (₦) on the shelf", listed, required=False)
         ev = evidence_prompt()
         ledger.record_purchase(date=date, supplier=sup, item=item, qty=qty,
-                               unit_cost=cost, paid_via=paid, evidence=ev)
+                               unit_cost=cost, paid_via=paid, evidence=ev,
+                               selling_price=sell or None)
         print("  Stock book increased"
               + ("; supplier debt book raised." if paid == "credit" else f"; {paid} book reduced."))
     elif kind == "expense":
@@ -237,6 +350,16 @@ def cmd_export(ledger, args):
     numeric = {"qty", "unit_price", "total", "cost_of_goods", "amount", "qty_in",
                "qty_out", "unit_cost", "amount_in", "amount_out", "book_value",
                "actual_value", "difference"}
+    sh = wb.create_sheet("Shelf (stock & prices)")
+    sh.append(["Item", "Qty on shelf", "Avg cost", "Selling price", "Margin/unit",
+               "Stock value at cost", "Reorder level", "Low?"])
+    for r in ledger.shelf():
+        sh.append([r["item"], float(r["qty"]), float(r["unit_cost"]),
+                   float(r["selling_price"]) if r["selling_price"] is not None else None,
+                   float(r["margin_per_unit"]) if r["margin_per_unit"] is not None else None,
+                   float(r["stock_value"]),
+                   float(r["reorder_level"]) if r["reorder_level"] is not None else None,
+                   "LOW" if r["low"] else ""])
     for book, cols in BOOKS.items():
         s = wb.create_sheet(BOOK_TITLES[book][:31])
         s.append(cols)
@@ -261,16 +384,19 @@ def cmd_sample(ledger, args):
     d = lambda n: str(t - dt.timedelta(days=n))
     ledger.opening_balance(date=d(20), account="cash", amount=50000)
     ledger.opening_balance(date=d(20), account="bank", amount=400000)
-    ledger.record_purchase(date=d(19), supplier="Ade Wholesale", item="Rice 50kg",
-                           qty=10, unit_cost=72000, paid_via="credit", evidence="INV-221")
-    ledger.record_purchase(date=d(19), supplier="Balogun Market", item="Groundnut oil 25L",
-                           qty=8, unit_cost=38000, paid_via="bank", evidence="TRF-0912")
-    ledger.record_sale(date=d(15), customer="", item="Rice 50kg", qty=2,
-                       unit_price=85000, paid_via="cash", evidence="RCPT-001")
+    template = Path(__file__).resolve().parents[1] / "stock_list_template.csv"
+    ledger.load_stock_list(template, date=d(20))          # stock already on the shelf
+    # sales: no price typed -> listed selling price is used, shelf is reduced
+    ledger.record_sale(date=d(15), customer="", item="rice 50kg", qty=2,
+                       paid_via="cash", evidence="RCPT-001")
+    ledger.record_purchase(date=d(14), supplier="Ade Wholesale", item="Rice 50kg",
+                           qty=5, unit_cost=74000, paid_via="credit", evidence="INV-221")
     ledger.record_sale(date=d(12), customer="Mama Chidi Canteen", item="Rice 50kg",
                        qty=3, unit_price=84000, paid_via="credit", evidence="INV-S-002")
     ledger.record_sale(date=d(10), customer="Kunle Stores", item="Groundnut oil 25L",
-                       qty=4, unit_price=45000, paid_via="bank", evidence="TRF-1177")
+                       qty=4, paid_via="bank", evidence="TRF-1177")
+    ledger.record_sale(date=d(10), customer="Kunle Stores", item="Indomie carton (40)",
+                       qty=21, paid_via="bank", evidence="TRF-1177")
     ledger.record_expense(date=d(9), category="Transport", description="Delivery to Mama Chidi",
                           amount=6000, paid_via="cash", business=True, evidence="")
     ledger.record_expense(date=d(8), category="Rent", description="Shop rent (month)",
@@ -281,7 +407,7 @@ def cmd_sample(ledger, args):
                                     amount=100000, account="bank", evidence="TRF-1201")
     ledger.pay_supplier(date=d(3), supplier="Ade Wholesale", amount=250000,
                         account="bank", evidence="TRF-1210")
-    print(f"Sample entries loaded into {ledger.folder}. Try: status, report, export.")
+    print(f"Sample entries loaded into {ledger.folder}. Try: shelf, status, report, export.")
 
 
 def main(argv=None):
@@ -295,6 +421,15 @@ def main(argv=None):
     r = sub.add_parser("record")
     r.add_argument("kind", nargs="?", choices=tuple(RECORD_TYPES))
     sub.add_parser("reconcile")
+    sh = sub.add_parser("shelf", help="show / search the shelf")
+    sh.add_argument("search", nargs="*")
+    si = sub.add_parser("stock-in", help="load stock already on the shelf")
+    si.add_argument("--file", help="CSV: item,qty,unit_cost,selling_price[,reorder_level]")
+    si.add_argument("--date")
+    pr = sub.add_parser("price", help="set an item's selling price")
+    pr.add_argument("item")
+    pr.add_argument("amount")
+    pr.add_argument("--reorder")
     rep = sub.add_parser("report")
     rep.add_argument("--from", dest="date_from")
     rep.add_argument("--to", dest="date_to")
@@ -304,7 +439,7 @@ def main(argv=None):
     args = p.parse_args(argv)
     ledger = Ledger(Path(args.data))
     try:
-        globals()[f"cmd_{args.cmd}"](ledger, args)
+        globals()[f"cmd_{args.cmd.replace('-', '_')}"](ledger, args)
     except BookkeepingError as exc:
         print(f"Refused: {exc}", file=sys.stderr)
         return 1

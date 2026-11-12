@@ -1,0 +1,7 @@
+item,qty,unit_cost,selling_price,reorder_level
+Rice 50kg,10,72000,85000,3
+Groundnut oil 25L,8,38000,45000,2
+Indomie carton (40),25,9800,11500,5
+Peak milk tin (carton 48),6,21500,24500,2
+Semovita 10kg,12,11200,13000,4
+Sugar 1kg (bag of 10),15,13500,15500,5

@@ -98,7 +98,7 @@ def status(ledger: Ledger, today: dt.date | None = None) -> Status:
     # created automatically from a sale or purchase would just repeat it.
     for book in ("sales", "expenses", "drawings", "stock"):
         late = [r["id"] for r in ledger.rows(book)
-                if (book != "stock" or r["kind"] == "purchase")
+                if (book != "stock" or r["kind"] in ("purchase", "opening"))
                 and (dt.datetime.fromisoformat(r["recorded_at"]).date()
                     - _date(r)).days > LATE_ENTRY_DAYS]
         if late:
@@ -135,6 +135,17 @@ def status(ledger: Ledger, today: dt.date | None = None) -> Status:
         st.add(3, "Supplier debt book", f"You owe {sup} {fmt(bal)} "
                f"(oldest unpaid {age} days).",
                "due" if age > DEBT_OVERDUE_DAYS else "info")
+    for line in ledger.shelf():
+        if line["low"]:
+            st.add(3, "Stock book", f"{line['item']} is down to {line['qty']} "
+                   f"(reorder level {line['reorder_level']}). Restock.", "due")
+        if line["qty"] > 0 and line["selling_price"] is None:
+            st.add(3, "Price list", f"{line['item']} has no selling price. "
+                   f"Set one: price \"{line['item']}\" AMOUNT", "warning")
+        elif line["selling_price"] is not None and line["margin_per_unit"] < 0:
+            st.add(3, "Price list", f"{line['item']} sells at "
+                   f"{fmt(line['selling_price'])}, below its cost "
+                   f"{fmt(line['unit_cost'])}.", "warning")
     credit_sales = sum((money(r["total"]) for r in ledger.rows("sales")
                         if r["paid_via"] == "credit"), Decimal("0"))
     credit_debts = sum((money(r["amount"]) for r in ledger.rows("customer_debts")
