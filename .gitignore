@@ -6,3 +6,8 @@ aip-*/
 .claude/skills/
 agent/
 skills-lock.json
+
+# Real bookkeeping records (private financial data) and Python caches
+projects/2026-11-bookkeeping/books/
+projects/2026-11-bookkeeping/demo/
+__pycache__/

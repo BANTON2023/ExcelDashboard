@@ -11,6 +11,7 @@ Work done with Claude Code, and the tools for checking it.
 ## Projects
 
 - [Video edit #1 — "B-roll" clip](projects/2026-11-video-edit/README.md) (5 Nov 2026) — [review](projects/2026-11-video-edit/REVIEW.md)
+- [Five-stage bookkeeping tool](projects/2026-11-bookkeeping/README.md) (12 Nov 2026): prompts, six books, reconciliation, profit report in ₦
 - Logistics dashboard — not started
 
 ## Using the reviewer agent
