@@ -16,7 +16,7 @@ Work done with Claude Code, and the tools for checking it.
 ## Projects
 
 - [Video edit #1 — "B-roll" clip](projects/2026-11-video-edit/README.md) (5 Nov 2026) — [review](projects/2026-11-video-edit/REVIEW.md)
-- Logistics dashboard — data profiled ([profile](projects/2026-11-logistics-dashboard/DATA-PROFILE.md)); waiting for the decisions it must support. See [setup](docs/LOGISTICS-DASHBOARD-SETUP.md)
+- Logistics dashboard — data profiled ([profile](projects/2026-11-logistics-dashboard/DATA-PROFILE.md)), [page plan](projects/2026-11-logistics-dashboard/DASHBOARD-SPEC.md), [KPI targets](projects/2026-11-logistics-dashboard/KPI-TARGETS.md), code in `powerbi/`. See [setup](docs/LOGISTICS-DASHBOARD-SETUP.md)
 
 ## Using the reviewer agent
 
