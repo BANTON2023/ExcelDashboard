@@ -3,6 +3,7 @@ aip-*/
 
 # Third-party AI Producer editing skills installed locally via `npx skills add`
 .agents/
-.claude/skills/
+.claude/skills/*
+!.claude/skills/critical-thinking/
 agent/
 skills-lock.json
