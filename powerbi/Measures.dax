@@ -1,0 +1,121 @@
+// =====================================================================
+// Logistics dashboard: DAX
+// Create a table called _Measures (Home > Enter data > OK) and add each measure to it
+// (Modeling > New measure). Put the "Date" table in first (Modeling > New table).
+// Expected whole-period values: projects/2026-11-logistics-dashboard/KPI-TARGETS.md
+// =====================================================================
+
+// ---------- Date table (Modeling > New table), then: Mark as date table ----------
+Date =
+ADDCOLUMNS (
+    CALENDAR ( DATE ( 2022, 1, 1 ), DATE ( 2025, 1, 31 ) ),   // fuel purchases run to 2 Jan 2025
+    "Year", YEAR ( [Date] ),
+    "Quarter", "Q" & QUARTER ( [Date] ),
+    "Month", FORMAT ( [Date], "MMM yyyy" ),
+    "MonthStart", DATE ( YEAR ( [Date] ), MONTH ( [Date] ), 1 ),
+    "MonthNo", YEAR ( [Date] ) * 100 + MONTH ( [Date] ),
+    "Weekday", FORMAT ( [Date], "ddd" )
+)
+// Sort the Month column by MonthNo (Column tools > Sort by column).
+
+// =============================== CORE ===============================
+Loads = COUNTROWS ( Shipments )
+Total Miles = SUM ( Shipments[actual_distance_miles] )
+Fuel Gallons Burned = SUM ( Shipments[fuel_gallons_used] )
+
+// =============================== CUSTOMER ===============================
+// Chosen definition: line-haul + fuel surcharge + accessorials
+Total Revenue = SUM ( Shipments[total_revenue] )
+//   Alternative build (no Power Query column needed):
+//   Total Revenue (SUMX) = SUMX ( Shipments, Shipments[revenue] + Shipments[fuel_surcharge] + Shipments[accessorial_charges] )
+Line-haul Revenue = SUM ( Shipments[revenue] )
+Surcharge & Accessorial Revenue = [Total Revenue] - [Line-haul Revenue]
+Revenue per Mile = DIVIDE ( [Total Revenue], [Total Miles] )
+Revenue per Load = DIVIDE ( [Total Revenue], [Loads] )
+Customers Served = DISTINCTCOUNT ( Shipments[customer_id] )
+
+Top-10 Customer Revenue Share =
+VAR Top10 =
+    TOPN ( 10, ALL ( Customers[customer_id] ), [Total Revenue] )
+RETURN
+    DIVIDE ( CALCULATE ( [Total Revenue], Top10 ), CALCULATE ( [Total Revenue], ALL ( Customers ) ) )
+
+// Fuel cost estimated from fuel actually burned × average purchase price for the period
+Est. Fuel Cost = [Fuel Gallons Burned] * [Avg Price per Gallon]
+Revenue after Fuel = [Total Revenue] - [Est. Fuel Cost]
+Revenue after Fuel per Mile = DIVIDE ( [Revenue after Fuel], [Total Miles] )
+
+Revenue YoY % =
+VAR Prev = CALCULATE ( [Total Revenue], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+RETURN DIVIDE ( [Total Revenue] - Prev, Prev )
+
+// =============================== SERVICE ===============================
+Stops = COUNTROWS ( Events )
+
+Delivery On-Time % =
+CALCULATE (
+    DIVIDE ( CALCULATE ( COUNTROWS ( Events ), Events[on_time_flag] = TRUE () ), COUNTROWS ( Events ) ),
+    Events[event_type] = "Delivery"
+)
+Pickup On-Time % =
+CALCULATE (
+    DIVIDE ( CALCULATE ( COUNTROWS ( Events ), Events[on_time_flag] = TRUE () ), COUNTROWS ( Events ) ),
+    Events[event_type] = "Pickup"
+)
+//   Alternative definition (stricter): delivered no later than scheduled
+Delivery Not-Late % =
+CALCULATE (
+    DIVIDE ( CALCULATE ( COUNTROWS ( Events ), Events[late_minutes] <= 0 ), COUNTROWS ( Events ) ),
+    Events[event_type] = "Delivery"
+)
+Late Deliveries = CALCULATE ( COUNTROWS ( Events ), Events[event_type] = "Delivery", Events[late_minutes] > 120 )
+Avg Detention (min) = AVERAGE ( Events[detention_minutes] )
+Detention Hours = DIVIDE ( SUM ( Events[detention_minutes] ), 60 )
+Deliveries = CALCULATE ( COUNTROWS ( Events ), Events[event_type] = "Delivery" )
+Late Delivery Rate = DIVIDE ( [Late Deliveries], [Deliveries] )
+Avg Minutes Late (deliveries) = CALCULATE ( AVERAGE ( Events[late_minutes] ), Events[event_type] = "Delivery" )
+
+// =============================== FLEET ===============================
+// Calculated COLUMN on Trucks (Table tools > New column), used for page Fleet, F1:
+// Ran Trips = IF ( CALCULATE ( COUNTROWS ( Shipments ) ) > 0, "Ran trips", "Never ran a trip" )
+Maintenance Cost = SUM ( Maintenance[total_cost] )
+Maintenance Events = COUNTROWS ( Maintenance )
+Maintenance Cost per Mile = DIVIDE ( [Maintenance Cost], [Total Miles] )
+Downtime Hours = SUM ( Maintenance[downtime_hours] )
+Downtime Hours per Truck = DIVIDE ( [Downtime Hours], [Trucks Used] )
+Trucks Used = DISTINCTCOUNTNOBLANK ( Shipments[truck_id] )
+Fleet Size = COUNTROWS ( Trucks )
+Fleet Usage % = DIVIDE ( [Trucks Used], [Fleet Size] )
+Avg Truck Age (yrs) = AVERAGEX ( Trucks, YEAR ( CALCULATE ( MAX ( Shipments[dispatch_date] ), ALL ( Shipments ) ) ) - Trucks[model_year] )
+Revenue per Truck = DIVIDE ( [Total Revenue], [Trucks Used] )
+// Maintenance spent on trucks that ran no trips in the selected period
+// (whole period: 28 trucks, $1.40M = 24.5% of maintenance)
+Maintenance on Idle Trucks =
+CALCULATE (
+    [Maintenance Cost],
+    FILTER ( Trucks, CALCULATE ( COUNTROWS ( Shipments ) ) = 0 )
+)
+Idle Truck Maintenance % = DIVIDE ( [Maintenance on Idle Trucks], [Maintenance Cost] )
+
+// =============================== DRIVER ===============================
+Active Drivers = DISTINCTCOUNTNOBLANK ( Shipments[driver_id] )
+Miles per Driver = DIVIDE ( [Total Miles], [Active Drivers] )
+// Weighted MPG: total miles ÷ total gallons (correct)
+Fleet MPG = DIVIDE ( [Total Miles], [Fuel Gallons Burned] )
+//   Alternative (usually wrong for totals: average of averages)
+//   Avg Trip MPG = AVERAGE ( Shipments[average_mpg] )
+Idle Hours = SUM ( Shipments[idle_time_hours] )
+Idle % of Trip Hours = DIVIDE ( [Idle Hours], SUM ( Shipments[actual_duration_hours] ) )
+Incidents = COUNTROWS ( Incidents )
+Preventable Incidents = CALCULATE ( [Incidents], Incidents[preventable_flag] = TRUE () )
+Incidents per Million Miles = DIVIDE ( [Incidents], [Total Miles] ) * 1000000
+Claim Cost = SUM ( Incidents[claim_amount] )
+
+// =============================== FUEL ===============================
+Fuel Spend = SUM ( Fuel[total_cost] )
+Gallons Purchased = SUM ( Fuel[gallons] )
+Avg Price per Gallon = DIVIDE ( [Fuel Spend], [Gallons Purchased] )
+//   Alternative (wrong: ignores volume): AVERAGE ( Fuel[price_per_gallon] )
+Fuel Cost per Mile = DIVIDE ( [Fuel Spend], [Total Miles] )
+Fuel Cost per Mile (burned) = DIVIDE ( [Est. Fuel Cost], [Total Miles] )
+Purchase Gap % = DIVIDE ( [Gallons Purchased] - [Fuel Gallons Burned], [Fuel Gallons Burned] )
