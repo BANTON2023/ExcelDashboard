@@ -79,9 +79,18 @@ let
         {"price_per_gallon", type number}, {"total_cost", Currency.Type}}, "en-US"),
     Nulls  = Table.ReplaceValue(Typed, "", null, Replacer.ReplaceValue, {"truck_id", "driver_id"}),
     Day    = Table.AddColumn(Nulls, "purchase_day", each DateTime.Date([purchase_date]), type date),
-    Drop   = Table.RemoveColumns(Day, {"fuel_card_number"})
+    Drop   = Table.RemoveColumns(Day, {"fuel_card_number"}),
+    // bring load_type across so fuel can be split Dry Van vs Refrigerated (page Fuel, U3)
+    WithLT = Table.NestedJoin(Drop, {"trip_id"}, Shipments, {"trip_id"}, "s", JoinKind.LeftOuter),
+    LT     = Table.ExpandTableColumn(WithLT, "s", {"load_type"})
 in
-    Drop
+    LT
+
+// ---------- Query: LoadType  (2-row lookup that filters Shipments AND Fuel) ----------
+let
+    Source = #table(type table [load_type = text], {{"Dry Van"}, {"Refrigerated"}})
+in
+    Source
 
 // ---------- Query: Maintenance ----------
 let
@@ -136,8 +145,14 @@ let
         {"date_of_birth", type date}, {"years_experience", Int64.Type}}, "en-US"),
     Label  = Table.AddColumn(Typed, "driver_label",
         each [first_name] & " " & [last_name] & " (" & [driver_id] & ")", type text),
+    Band   = Table.AddColumn(Label, "experience_band", each
+        if [years_experience] <= 5 then "1) 0–5 yrs"
+        else if [years_experience] <= 10 then "2) 6–10 yrs"
+        else if [years_experience] <= 15 then "3) 11–15 yrs"
+        else if [years_experience] <= 20 then "4) 16–20 yrs"
+        else "5) 21–25 yrs", type text),
     // keep personal data out of the model
-    Drop   = Table.RemoveColumns(Label, {"license_number", "date_of_birth"})
+    Drop   = Table.RemoveColumns(Band, {"license_number", "date_of_birth"})
 in
     Drop
 

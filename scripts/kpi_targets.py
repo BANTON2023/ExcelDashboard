@@ -32,15 +32,18 @@ rows = [
     ("Customer", "Loads", f"{len(S):,}"),
     ("Customer", "Revenue per Mile", f"${rev/miles:,.3f}"),
     ("Customer", "Top-10 Customer Revenue Share", f"{cust_rev.head(10).sum()/rev:.1%}"),
+    ("Customer", "Revenue after Fuel per Mile", f"${(rev-est_fuel)/miles:,.3f}"),
     ("Customer", "(support) Revenue after Est. Fuel", f"${rev-est_fuel:,.0f}"),
     ("Service", "Delivery On-Time % (±120 min, from flag)", f"{dlv.on_time_flag.mean():.1%}"),
     ("Service", "Pickup On-Time %", f"{pck.on_time_flag.mean():.1%}"),
     ("Service", "Avg Detention per Stop (min)", f"{E.detention_minutes.mean():.1f}"),
     ("Service", "Late Deliveries (>120 min late)", f"{(dlv.late_minutes > 120).sum():,}"),
+    ("Service", "Late Delivery Rate", f"{(dlv.late_minutes > 120).mean():.1%}"),
     ("Service", "(alt) Delivery Not-Late %", f"{(dlv.late_minutes <= 0).mean():.1%}"),
     ("Fleet", "Maintenance Cost", f"${M.total_cost.sum():,.0f}"),
     ("Fleet", "Maintenance Cost per Mile", f"${M.total_cost.sum()/miles:,.4f}"),
     ("Fleet", "Downtime Hours", f"{M.downtime_hours.sum():,.1f}"),
+    ("Fleet", "Maintenance on Idle Trucks", f"${M[~M.truck_id.isin(set(S.truck_id.dropna()))].total_cost.sum():,.0f}"),
     ("Fleet", "Trucks Used / Fleet", f"{trucks_used} / {len(TK)} = {trucks_used/len(TK):.1%}"),
     ("Driver", "Active Drivers", f"{drivers_used}"),
     ("Driver", "Fleet MPG (miles ÷ gallons, weighted)", f"{miles/burned:.3f}"),
@@ -61,5 +64,6 @@ print("a relationship is wrong.\n")
 print("| Page | KPI | Value |\n| --- | --- | ---: |")
 for p, k, v in rows:
     print(f"| {p} | {k} | {v} |")
+print("\nFuel totals include purchases on 1–2 Jan 2025 ($0.09M); the Date table runs to 31 Jan 2025 to keep them.")
 print(f"\nSupporting totals: miles {miles:,.0f}; gallons burned {burned:,.0f}; "
       f"gallons bought {bought:,.0f}; incidents {len(I)}.")

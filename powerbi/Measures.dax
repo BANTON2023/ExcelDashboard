@@ -8,7 +8,7 @@
 // ---------- Date table (Modeling > New table), then: Mark as date table ----------
 Date =
 ADDCOLUMNS (
-    CALENDAR ( DATE ( 2022, 1, 1 ), DATE ( 2024, 12, 31 ) ),
+    CALENDAR ( DATE ( 2022, 1, 1 ), DATE ( 2025, 1, 31 ) ),   // fuel purchases run to 2 Jan 2025
     "Year", YEAR ( [Date] ),
     "Quarter", "Q" & QUARTER ( [Date] ),
     "Month", FORMAT ( [Date], "MMM yyyy" ),
@@ -71,9 +71,13 @@ CALCULATE (
 Late Deliveries = CALCULATE ( COUNTROWS ( Events ), Events[event_type] = "Delivery", Events[late_minutes] > 120 )
 Avg Detention (min) = AVERAGE ( Events[detention_minutes] )
 Detention Hours = DIVIDE ( SUM ( Events[detention_minutes] ), 60 )
+Deliveries = CALCULATE ( COUNTROWS ( Events ), Events[event_type] = "Delivery" )
+Late Delivery Rate = DIVIDE ( [Late Deliveries], [Deliveries] )
 Avg Minutes Late (deliveries) = CALCULATE ( AVERAGE ( Events[late_minutes] ), Events[event_type] = "Delivery" )
 
 // =============================== FLEET ===============================
+// Calculated COLUMN on Trucks (Table tools > New column), used for page Fleet, F1:
+// Ran Trips = IF ( CALCULATE ( COUNTROWS ( Shipments ) ) > 0, "Ran trips", "Never ran a trip" )
 Maintenance Cost = SUM ( Maintenance[total_cost] )
 Maintenance Events = COUNTROWS ( Maintenance )
 Maintenance Cost per Mile = DIVIDE ( [Maintenance Cost], [Total Miles] )
@@ -82,7 +86,7 @@ Downtime Hours per Truck = DIVIDE ( [Downtime Hours], [Trucks Used] )
 Trucks Used = DISTINCTCOUNTNOBLANK ( Shipments[truck_id] )
 Fleet Size = COUNTROWS ( Trucks )
 Fleet Usage % = DIVIDE ( [Trucks Used], [Fleet Size] )
-Avg Truck Age (yrs) = AVERAGEX ( Trucks, YEAR ( MAX ( 'Date'[Date] ) ) - Trucks[model_year] )
+Avg Truck Age (yrs) = AVERAGEX ( Trucks, YEAR ( CALCULATE ( MAX ( Shipments[dispatch_date] ), ALL ( Shipments ) ) ) - Trucks[model_year] )
 Revenue per Truck = DIVIDE ( [Total Revenue], [Trucks Used] )
 // Maintenance spent on trucks that ran no trips in the selected period
 // (whole period: 28 trucks, $1.40M = 24.5% of maintenance)
