@@ -7,3 +7,6 @@ aip-*/
 !.claude/skills/critical-thinking/
 agent/
 skills-lock.json
+
+# Raw company data (keep out of git)
+data/
